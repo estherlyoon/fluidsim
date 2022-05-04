@@ -12,6 +12,12 @@ find_package(SFML REQUIRED network audio graphics window system)
 set(APP_FILES "src/app.cpp"
               "src/app.hpp"
               "src/main.cpp"
+              "src/common.cpp"
+              "src/common.hpp"
+              "src/fluidsim.cpp"
+              "src/fluidsim.hpp"
+              "src/cpu_solver.cpp"
+              "src/cpu_solver.hpp"
               ) 
 
 add_executable(fluid-sim ${APP_FILES})

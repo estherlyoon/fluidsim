@@ -72,8 +72,6 @@
         float3 vNew = vOld - gradP;   return float4(vNew, 0); 
     } 
 
-
-
     // MacCormack Advection Scheme
 
     float4 PS_ADVECT_MACCORMACK(GS_OUTPUT_FLUIDSIM in, float timestep) : SV_Target {   
