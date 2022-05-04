@@ -17,6 +17,7 @@ public:
 
     unsigned int gridWidth;
     unsigned int gridHeight;
+    bool runningSimulation;
 
     App();
 
@@ -25,7 +26,7 @@ public:
     void run();
     void update();
     void draw();
-    void uint8ToImage();
+    void event_handler(sf::Event const& event);
 };
 
 
