@@ -2,7 +2,7 @@
 
 #include <SFML/Graphics.hpp>
 
-FluidSim::FluidSim(unsigned int w, unsigned int h) {
+FluidSim::FluidSim(unsigned int w, unsigned int h) : width(w), height(h) {
     // assume fluid start with zero initial velocity and pressure
     vx = new float[w * h]();
     vy = new float[w * h]();

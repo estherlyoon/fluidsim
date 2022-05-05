@@ -1,8 +1,11 @@
 #include "app.hpp"
+#include "cpu_solver.hpp"
+
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-App::App() : gridWidth(800), gridHeight(600), runningSimulation(false) {
+// TODO parameterize w, h, gpu
+App::App() : gridWidth(800), gridHeight(600), runningSimulation(false), gpu(false) {
     window = new sf::RenderWindow(sf::VideoMode(gridWidth, gridHeight), "SmokeSim");
     simulation = new FluidSim(gridWidth, gridHeight);
     smokeTexture.create(gridWidth, gridHeight);
@@ -53,8 +56,13 @@ void App::event_handler(sf::Event const& event) {
     }
 }
 
+// TODO pass in time?
 void App::update() {
+    if (gpu) {
 
+    } else {
+        cpu_solver::update(simulation);
+    }
 }
 
 // draw sprite containing smoke to screen
