@@ -9,6 +9,7 @@ FluidSim::FluidSim(unsigned int w, unsigned int h) {
     pressures = new float[w * h]();
     temperatures = new float[w * h]();
     densities = new float[w * h]();
+    // point (x, y) on screen -> (y*width+x)*4
     RGBA = new uint8_t[w * h * 4]();
 
     // set opacity

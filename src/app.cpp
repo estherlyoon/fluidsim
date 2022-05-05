@@ -43,11 +43,9 @@ void App::event_handler(sf::Event const& event) {
         case (sf::Event::MouseButtonPressed):
             int x = event.mouseButton.x;
             int y = event.mouseButton.y;
-            std::cout << "x = " << x << ", y = " << y << std::endl;
 
             if(event.mouseButton.button == sf::Mouse::Left) {
                 for (int i = 0; i < 3; i++) {
-                    std::cout << "set at " << y*gridHeight+x << std::endl;
                     simulation->RGBA[(y*gridWidth+x)*4+i] = 255;
                 }
             }

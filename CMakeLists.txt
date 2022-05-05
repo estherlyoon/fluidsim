@@ -9,6 +9,11 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 find_package(SFML REQUIRED network audio graphics window system)
 
+FILE(GLOB cmakes ${CMAKE_SOURCE_DIR}/cmake/*.cmake)
+FOREACH(cmake ${cmakes})
+	INCLUDE(${cmake})
+ENDFOREACH(cmake)
+ 
 set(APP_FILES "src/app.cpp"
               "src/app.hpp"
               "src/main.cpp"
