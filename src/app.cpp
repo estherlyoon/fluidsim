@@ -40,7 +40,7 @@ void App::event_handler(sf::Event const& event) {
             if (event.key.code == sf::Keyboard::R) {
                 // TODO reset
             } else if (event.key.code == sf::Keyboard::Space) {
-                runningSimulation = true;
+                runningSimulation = !runningSimulation;
             }
             break;
         case (sf::Event::MouseButtonPressed):
