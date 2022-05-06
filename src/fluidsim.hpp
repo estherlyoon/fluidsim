@@ -1,9 +1,11 @@
 #ifndef __FLUID_SIM_HPP__
 #define __FLUID_SIM_HPP__
 
+#include "common.hpp"
+
 #include <vector>
-#include <chrono>
 #include <stdint.h>
+
 
 class FluidSim {
 
@@ -19,11 +21,13 @@ public:
     unsigned int width;
     unsigned int height;
 
-    // time tracking TODO just a normal float?
-    std::chrono::duration<float> clock;
+    // time tracking
+    TimePoint time;
 
     FluidSim(unsigned int w, unsigned int h);
     ~FluidSim();
+
+    float updateTimestep();
 };
 
 

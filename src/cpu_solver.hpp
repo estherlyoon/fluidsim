@@ -6,7 +6,7 @@
 namespace cpu_solver {
 
     void update(FluidSim* sim);
-    void advect(float* vx, float* vy, float timestep, unsigned int w, unsigned int h);
+    void advect(float* vx, float* vy, uint8_t* RGBA, float timestep, unsigned int w, unsigned int h);
 
 };
 
