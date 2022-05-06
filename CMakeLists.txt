@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
-project(fluid-sim LANGUAGES CXX CUDA) #TODO add CUDA
+project(fluid-sim LANGUAGES CXX )#CUDA)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

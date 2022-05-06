@@ -10,6 +10,8 @@
 class FluidSim {
 
 public:
+    bool gpu;
+
     // per-pixel scalar fields
     float* vx; // x-direction velocity field 
     float* vy; // y-direction velocity field
@@ -21,12 +23,20 @@ public:
     unsigned int width;
     unsigned int height;
 
+    // forces applied by user
+    bool addVelocity;
+    int xPoint;
+    int yPoint;
+    float xDir;
+    float yDir;
+
     // time tracking
     TimePoint time;
 
-    FluidSim(unsigned int w, unsigned int h);
+    FluidSim(unsigned int w, unsigned int h, bool gpu);
     ~FluidSim();
 
+    void updateSimulation();
     float updateTimestep();
 };
 

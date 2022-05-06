@@ -18,7 +18,6 @@ public:
     unsigned int gridWidth;
     unsigned int gridHeight;
     bool runningSimulation;
-    bool gpu;
 
     App();
 

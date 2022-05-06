@@ -5,9 +5,9 @@
 #include <iostream>
 
 // TODO parameterize w, h, gpu
-App::App() : gridWidth(800), gridHeight(600), runningSimulation(false), gpu(false) {
+App::App() : gridWidth(800), gridHeight(600), runningSimulation(false) {
     window = new sf::RenderWindow(sf::VideoMode(gridWidth, gridHeight), "SmokeSim");
-    simulation = new FluidSim(gridWidth, gridHeight);
+    simulation = new FluidSim(gridWidth, gridHeight, false);
     smokeTexture.create(gridWidth, gridHeight);
 }
 
@@ -33,36 +33,60 @@ void App::run() {
 
 void App::event_handler(sf::Event const& event) {
     switch (event.type) {
-        case (sf::Event::Closed):
+        case (sf::Event::Closed): {
             window->close();
             break;
-        case (sf::Event::KeyPressed):
+        }
+        case (sf::Event::KeyPressed): {
             if (event.key.code == sf::Keyboard::R) {
                 // TODO reset
             } else if (event.key.code == sf::Keyboard::Space) {
                 runningSimulation = !runningSimulation;
             }
             break;
-        case (sf::Event::MouseButtonPressed):
+        }
+        case (sf::Event::MouseButtonPressed): {
             int x = event.mouseButton.x;
             int y = event.mouseButton.y;
 
-            if(event.mouseButton.button == sf::Mouse::Left) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
                 for (int i = 0; i < 3; i++) {
                     simulation->RGBA[(y*gridWidth+x)*4+i] = 255;
                 }
             }
+
+            if (event.mouseButton.button == sf::Mouse::Right) {
+                // start applying force
+                simulation->addVelocity = true;
+                simulation->xPoint = x;
+                simulation->yPoint = y;
+                simulation->xDir = 0.0f;
+                simulation->yDir = 0.0f;
+            }     
             break;
+        }
+        case (sf::Event::MouseMoved): {
+            // continue applying force in drag direction
+            float currX = static_cast<float>(event.mouseMove.x);
+            float currY = static_cast<float>(event.mouseMove.y);
+            simulation->xDir = currX - simulation->xPoint;
+            simulation->yDir = currY - simulation->yPoint;
+            simulation->xPoint = currX;
+            simulation->yPoint = currY;
+            break;
+        }
+        case (sf::Event::MouseButtonReleased): {
+
+            if (event.mouseButton.button == sf::Mouse::Right) {
+                simulation->addVelocity = false;
+            }
+            break;
+        }
     }
 }
 
-// TODO pass in time?
 void App::update() {
-    if (gpu) {
-
-    } else {
-        cpu_solver::update(simulation);
-    }
+    simulation->updateSimulation();
 }
 
 // draw sprite containing smoke to screen

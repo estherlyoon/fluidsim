@@ -5,7 +5,6 @@
 
 namespace cpu_solver {
 
-
 void advect(float* vx, float* vy, uint8_t* RGBA, float timestep, unsigned int w, unsigned int h) {
 
     const int dim = w * h;
@@ -66,8 +65,8 @@ void advect(float* vx, float* vy, uint8_t* RGBA, float timestep, unsigned int w,
 // template type for in>
 void jacobi(float* xIn, float* bIn, float alpha, float rBeta, int w, int h, int iters) {
 
-    uint8_t* currIn = new uint8_t[w*h];
-    std::memcpy(currIn, xIn, sizeof(uint8_t) * w * h);
+    float* currIn = new float[w*h];
+    std::memcpy(currIn, xIn, sizeof(float) * w * h);
 
     // perform jacobi iterations 
     for (int i = 0; i < iters; i++) {
@@ -88,17 +87,14 @@ void jacobi(float* xIn, float* bIn, float alpha, float rBeta, int w, int h, int 
     delete currIn;
 }
 
-void update(FluidSim* sim) {
-    // get timestep
-    float timestep = sim->updateTimestep();
-    //printf("timestep = %f\n", timestep);
+void update(FluidSim* sim, float timestep) {
     float squaredDim = sim->width*sim->width*sim->height*sim->height;
     const float alpha = squaredDim/timestep;
     const float beta = 1/(4 + squaredDim/timestep);
 
     // update advected quantities (velocities, color, TODO density/pressure)
     advect(sim->vx, sim->vy, sim->RGBA, 1.0, sim->width, sim->height);
-    // TODO alpha beta
+    // diffuse velocities
     jacobi(sim->vx, sim->vx, alpha, beta, sim->width, sim->height, 35);
     jacobi(sim->vy, sim->vy, alpha, beta, sim->width, sim->height, 35);
 }

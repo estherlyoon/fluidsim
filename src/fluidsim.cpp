@@ -1,8 +1,9 @@
 #include "fluidsim.hpp"
+#include "cpu_solver.hpp"
 
 #include <SFML/Graphics.hpp>
 
-FluidSim::FluidSim(unsigned int w, unsigned int h) : width(w), height(h) {
+FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), addVelocity(false) {
     // assume fluid start with zero initial velocity and pressure
     vx = new float[w * h]();
     vy = new float[w * h]();
@@ -22,6 +23,21 @@ FluidSim::FluidSim(unsigned int w, unsigned int h) : width(w), height(h) {
 
 FluidSim::~FluidSim() {
 
+}
+
+void FluidSim::updateSimulation() {
+    float timestep = updateTimestep();
+
+    if (addVelocity) {
+        // scale xDir and yDir some amount add add to vx and vy
+        // TODO later make more complex with force equation to include impulse?
+    }
+
+    if (gpu) {
+
+    } else {
+        cpu_solver::update(this, timestep);
+    }
 }
 
 // returns time delta since last time recorded
