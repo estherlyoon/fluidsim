@@ -5,7 +5,7 @@
 #include <iostream>
 
 // TODO parameterize w, h, gpu
-App::App() : gridWidth(800), gridHeight(600), runningSimulation(false) {
+App::App() : gridWidth(100), gridHeight(100), runningSimulation(false) {
     window = new sf::RenderWindow(sf::VideoMode(gridWidth, gridHeight), "SmokeSim");
     simulation = new FluidSim(gridWidth, gridHeight, false);
     smokeTexture.create(gridWidth, gridHeight);
@@ -50,18 +50,14 @@ void App::event_handler(sf::Event const& event) {
             int y = event.mouseButton.y;
 
             if (event.mouseButton.button == sf::Mouse::Left) {
-                for (int i = 0; i < 3; i++) {
-                    simulation->RGBA[(y*gridWidth+x)*4+i] = 255;
-                }
+                simulation->addDensity(x, y);
             }
 
             if (event.mouseButton.button == sf::Mouse::Right) {
-                // start applying force
-                simulation->addVelocity = true;
+                /* simulation->addVelocity(x, y, 1, 0); */
+                /* simulation->addVelocity(x, y, 0, 1); */
                 simulation->xPoint = x;
                 simulation->yPoint = y;
-                simulation->xDir = 0.0f;
-                simulation->yDir = 0.0f;
             }     
             break;
         }
@@ -69,16 +65,17 @@ void App::event_handler(sf::Event const& event) {
             // continue applying force in drag direction
             float currX = static_cast<float>(event.mouseMove.x);
             float currY = static_cast<float>(event.mouseMove.y);
-            simulation->xDir = currX - simulation->xPoint;
-            simulation->yDir = currY - simulation->yPoint;
-            simulation->xPoint = currX;
-            simulation->yPoint = currY;
-            break;
-        }
-        case (sf::Event::MouseButtonReleased): {
+            float xDir = (float)currX - simulation->xPoint;
+            float yDir = (float)currY - simulation->yPoint;
 
-            if (event.mouseButton.button == sf::Mouse::Right) {
-                simulation->addVelocity = false;
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                simulation->addDensity(currX, currY);
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+                simulation->xPoint = currX;
+                simulation->yPoint = currY;
+                simulation->addVelocity(currX, currY, xDir, yDir);
             }
             break;
         }
@@ -93,7 +90,7 @@ void App::update() {
 void App::draw() {
     // update texture of sprite using simulation color data
     sf::Image smokeImage;
-    smokeImage.create(gridWidth, gridHeight, simulation->RGBA);
+    smokeImage.create(gridWidth, gridHeight, simulation->denseRGBA);
     smokeTexture.loadFromImage(smokeImage);
     smokeSprite.setTexture(smokeTexture);
     /* sprite.setScale(gridWidth, gridHeight); */

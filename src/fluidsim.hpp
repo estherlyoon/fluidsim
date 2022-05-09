@@ -19,16 +19,17 @@ public:
     float* temperatures;
     float* densities;
     uint8_t* RGBA;
+    uint8_t* denseRGBA;
+    float* denseAdded;
+    float* vxAdded;
+    float* vyAdded;
 
     unsigned int width;
     unsigned int height;
 
     // forces applied by user
-    bool addVelocity;
     int xPoint;
     int yPoint;
-    float xDir;
-    float yDir;
 
     // time tracking
     TimePoint time;
@@ -38,6 +39,8 @@ public:
 
     void updateSimulation();
     float updateTimestep();
+    void addDensity(int x, int y);
+    void addVelocity(int x, int y, float dx, float dy);
 };
 
 
