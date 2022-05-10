@@ -51,8 +51,8 @@ void advect(float* vx, float* vy, float* quantity, float timestep, unsigned int 
             quantity[idx] = b1*(a1*currQuant[y0*w+x0] + a0*currQuant[y0*w+x1])
                         + b0*(a1*currQuant[y1*w+x0] + a0*currQuant[y1*w+x1]);
 
-            if (lastQ < quantity[idx])
-                printf("quant[%d] = %f -> %f\n", idx, lastQ, quantity[idx]);
+            /* if (lastQ < quantity[idx]) */
+            /*     printf("quant[%d] = %f -> %f\n", idx, lastQ, quantity[idx]); */
 
             
         }
@@ -141,10 +141,6 @@ void solveDensity(FluidSim* sim) {
     diffuse(sim->densities, tmpDensities, diff_rate, sim->width, sim->height, 1.0);
     advect(sim->vx, sim->vy, sim->densities, 1.0, sim->width, sim->height);
     updateColors(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
-
-    // TMP
-    addSources(sim->vxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
-    addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
 }
 
 void solveVelocity(FluidSim* sim) {
@@ -170,7 +166,7 @@ void solveVelocity(FluidSim* sim) {
 
 void update(FluidSim* sim, float timestep) {
     solveDensity(sim);
-    /* solveVelocity(sim); */
+    solveVelocity(sim);
 }
 
 

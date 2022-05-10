@@ -20,7 +20,9 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
 
     // set opacity
     for (int i = 0; i < w*h; i++) {
-        RGBA[i*4+3] = 255;
+        // init base color to white
+        for (int j = 0; j < 4; j++) 
+            RGBA[i*4+j] = 255;
         denseRGBA[i*4+3] = 255;
     }
 
@@ -60,9 +62,9 @@ void FluidSim::addDensity(int x, int y) {
 
 void FluidSim::addVelocity(int x, int y, float dx, float dy) {
     int idx = y * width + x;
-    printf("adding %f to x = %d, %f to y = %d\n", dx, x, -1*dy, y);
-    vxAdded[idx] += dx;
-    vyAdded[idx] += -1*dy;
+    /* printf("adding %f to x = %d, %f to y = %d\n", dx, x, -1*dy, y); */
+    vxAdded[idx] += 0.5f * width * dx;
+    vyAdded[idx] += 0.5f * height * -1*dy;
 }
 
 // returns time delta since last time recorded
