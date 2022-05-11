@@ -98,10 +98,10 @@ void addSources(float* src, float* dest, int w, int h, float ts, float clamp) {
     }
 }
 
-void diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int h, float ts) {
+void diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int h, float ts, int iters) {
     float a = ts * diff_rate * w * h;
 
-    for (int k = 0; k < 20; k++) {
+    for (int k = 0; k < iters; k++) {
         for (int x = 1; x < w-1; x++) {
             for (int y = 1; y < h-1; y++) {
                 int idx = y * w + x;
@@ -113,6 +113,42 @@ void diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int 
             }
         }
     }
+}
+
+void project(float* vx, float* vy, float* p, float* div, int w, int h, int iters) {
+    int dim = w * h;
+    float h0 = 1.0f / h;
+    float w0 = 1.0f / w;
+
+    for (int x = 1; x < w-1; x++) {
+        for (int y = 1; y < h-1; y++) {
+            int idx = y * w + x;
+            div[idx] = -0.5f*h0*(vy[(y+1)*w+x] - vy[(y-1)*w+x]
+                                 + vx[y*w+x+1] - vx[y*w+x-1]);
+            p[idx] = 0;
+        }
+    }
+
+    // set bnd for div, p
+    for (int i = 0; i < iters; i++) {
+        for (int x = 1; x < w-1; x++) {
+            for (int y = 1; y < h-1; y++) {
+                int idx = y * w + x;
+                p[idx] = (div[idx] + p[y*w-x] + p[y*w+x+1]
+                                + p[(y-1)*w+x] + p[(y+1)*w+x]) / 4;
+            }
+        }
+        // set bnd for p
+    }
+
+    for (int x = 1; x < w-1; x++) {
+        for (int y = 1; y < h-1; y++) {
+            int idx = y * w + x;
+            vx[idx] -= 0.5 * (p[y*w+x+1] - p[y*w+x-1]) / w0;
+            vy[idx] -= 0.5 * (p[(y+1)*w+x+1] - p[(y-1)*w+x-1]) / h0;
+        }
+    }
+    // set bnd for u, v
 }
 
 void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h) {
@@ -138,7 +174,7 @@ void solveDensity(FluidSim* sim) {
     float* tmpDensities = new float[dim];
     std::memcpy(tmpDensities, sim->densities, sizeof(float) * dim);
 
-    diffuse(sim->densities, tmpDensities, diff_rate, sim->width, sim->height, 1.0);
+    diffuse(sim->densities, tmpDensities, diff_rate, sim->width, sim->height, 1.0, 20);
     advect(sim->vx, sim->vy, sim->densities, 1.0, sim->width, sim->height);
     updateColors(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
 }
@@ -148,25 +184,27 @@ void solveVelocity(FluidSim* sim) {
     addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
 
     int dim = sim->width * sim->height;
-    float visc = 0.8;
+    float visc = 0.8; // TODO
     float* tmpV = new float[dim];
+    float* tmpU = new float[dim];
     std::memcpy(tmpV, sim->vx, sizeof(float) * dim);
-    diffuse(sim->vx, tmpV, visc, sim->width, sim->height, 1.0); // TODO time?
+    diffuse(sim->vx, tmpV, visc, sim->width, sim->height, 1.0, 20); // TODO time?
     std::memcpy(tmpV, sim->vy, sizeof(float) * dim);
-    diffuse(sim->vy, tmpV, visc, sim->width, sim->height, 1.0); // TODO time?
+    diffuse(sim->vy, tmpV, visc, sim->width, sim->height, 1.0, 20); // TODO time?
 
     // project
-    /* jacobi(sim->vx, sim->vx, alpha, beta, sim->width, sim->height, 35); */
-    /* jacobi(sim->vy, sim->vy, alpha, beta, sim->width, sim->height, 35); */
+    project(sim->vx, sim->vy, tmpV, tmpU, sim->width, sim->height, 40);
 
     advect(sim->vx, sim->vy, sim->vx, 1.0, sim->width, sim->height);
     advect(sim->vx, sim->vy, sim->vy, 1.0, sim->width, sim->height);
+
+    project(sim->vx, sim->vy, tmpV, tmpU, sim->width, sim->height, 40);
 }
 
 
 void update(FluidSim* sim, float timestep) {
-    solveDensity(sim);
     solveVelocity(sim);
+    solveDensity(sim);
 }
 
 
