@@ -20,9 +20,14 @@ public:
     float* densities;
     uint8_t* RGBA;
     uint8_t* denseRGBA;
+    uint8_t* cudaRGBA;
+    uint8_t* cudaDenseRGBA;
     float* denseAdded;
     float* vxAdded;
     float* vyAdded;
+    float* cudaDenseAdded;
+    float* cudaVxAdded;
+    float* cudaVyAdded;
 
     float* tmpV;
     float* tmpU;

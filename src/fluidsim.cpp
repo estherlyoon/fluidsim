@@ -10,8 +10,8 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
     vxAdded = new float[w * h]();
     vyAdded = new float[w * h]();
     denseAdded = new float[w * h]();
-
-    // TODO cuda pointers for sources and RGBA to memcpy over
+    denseRGBA = new uint8_t[w * h * 4]();
+    RGBA = new uint8_t[w * h * 4]();
 
     if (gpu) allocDevice();
     else allocHost();
@@ -31,32 +31,40 @@ FluidSim::~FluidSim() {
 }
 
 void FluidSim::allocHost() {
+    size_t dim = width * height;
     // assume fluid start with zero initial velocity and pressure
-    vx = new float[w * h]();
-    vy = new float[w * h]();
-    pressures = new float[w * h]();
-    temperatures = new float[w * h]();
-    densities = new float[w * h]();
+    vx = new float[dim]();
+    vy = new float[dim]();
+    pressures = new float[dim]();
+    temperatures = new float[dim]();
+    densities = new float[dim]();
+
     // point (x, y) on screen -> (y*width+x)*4
-    RGBA = new uint8_t[w * h * 4]();
-    denseRGBA = new uint8_t[w * h * 4]();
-    tmpV = new float[w * h];
-    tmpU = new float[w * h];
+    tmpV = new float[dim];
+    tmpU = new float[dim];
 }
 
 void FluidSim::allocDevice() {
-    size_t sim = sizeof(float) * width * height;
+    size_t dim = sizeof(float) * width * height;
     cudaMalloc((void**)&vx, dim);
     cudaMalloc((void**)&vy, dim);
     cudaMalloc((void**)&pressures, dim);
     cudaMalloc((void**)&temperatures, dim);
     cudaMalloc((void**)&densities, dim);
-    cudaMalloc((void**)&RGBA, dim);
     cudaMalloc((void**)&tmpV, dim);
     cudaMalloc((void**)&tmpU, dim);
+    cudaMalloc((void**)&cudaDenseAdded, dim);
+    cudaMalloc((void**)&cudaVxAdded, dim);
+    cudaMalloc((void**)&cudaVyAdded, dim);
+    cudaMalloc((void**)&cudaRGBA, sizeof(uint8_t)*width*height);
+    cudaMalloc((void**)&cudaDenseRGBA, sizeof(uint8_t)*width*height);
 
-    // TODO init to 0
-    cudaMemset
+    // init to 0
+    cudaMemset(vx, 0, dim);
+    cudaMemset(vy, 0, dim);
+    cudaMemset(densities, 0, dim);
+    cudaMemset(cudaRGBA, 255, sizeof(uint8_t)*width*height);
+    // TODO init cudaDenseRGBA's alpha?
 }
 
 void FluidSim::updateSimulation() {

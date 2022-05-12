@@ -127,18 +127,18 @@ __global__ void d_project(float* vx, float* vy, float* p, float* div, int w, int
                          + vx[UV(x+1,y,w)] - vx[UV(x-1,y,w)]);
     p[UV(x,y,w)] = 0;
 
-    // SYNC
+    __syncthreads();
 
     //setBoundary(p, w, h, CONTINUOUS);
     //setBoundary(div, w, h, CONTINUOUS);
 
-    // SYNC
+    __syncthreads();
 
     // set bnd for div, p
     for (int i = 0; i < iters; i++) {
         p[UV(x,y,w)] = (div[UV(x,y,w)] + p[UV(x-1,y,w)] + p[UV(x+1,y,w)]
                         + p[UV(x,y-1,w)] + p[UV(x,y+1,w)]) / 4.0f;
-        // SYNC
+        __syncthreads();
         //setBoundary(p, w, h, CONTINUOUS);
         // SYNC
     }
@@ -166,9 +166,13 @@ __global__ void d_updateColors(float* densities, uint8_t* RGBA, uint8_t* res, in
 
 
 void update(FluidSim* sim) {
-    // todo:
     // copy density and velocity sources to cuda pointers
-    // replace current names with cuda pointers (actually just allocate)
+    cudaMemcpy(sim->cudaVxAdded, sim->vxAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
+    cudaMemcpy(sim->cudaVyAdded, sim->vyAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
+    cudaMemcpy(sim->cudaDenseAdded, sim->denseAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
+    cudaMemcpy(sim->cudaRGBA, sim->RGBA, sizeof(uint8_t)*sim->width*sim->height*3, cudaMemcpyHostToDevice);
+    printf("copied stuf\n");
+
     // sync after every call
 
     // derive kernel configuration
@@ -179,8 +183,9 @@ void update(FluidSim* sim) {
     dim3 gridSize = dim3(bx, by);
 
     // solve velocity
-    d_addSources<<<gridSize, blockSize>>>(sim->vxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
-    d_addSources<<<gridSize, blockSize>>>(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
+    d_addSources<<<gridSize, blockSize>>>(sim->cudaVxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
+    d_addSources<<<gridSize, blockSize>>>(sim->cudaVyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
+    printf("added velocity sources\n");
 
     float visc = 0.5;
     swap(&sim->vx, &sim->tmpV);
@@ -199,13 +204,17 @@ void update(FluidSim* sim) {
      
     // solve density
     float diff_rate = 0.8;
-    d_addSources<<<gridSize, blockSize>>>(sim->denseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
+    d_addSources<<<gridSize, blockSize>>>(sim->cudaDenseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
+    printf("added density sources\n");
 
     swap(&sim->densities, &sim->tmpV);
     d_diffuse<<<gridSize, blockSize>>>(sim->densities, sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
     swap(&sim->densities, &sim->tmpV);
     d_advect<<<gridSize, blockSize>>>(sim->vx, sim->vy, sim->densities, sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
-    d_updateColors<<<gridSize, blockSize>>>(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
+    d_updateColors<<<gridSize, blockSize>>>(sim->densities, sim->cudaRGBA, sim->cudaDenseRGBA, sim->width, sim->height);
+
+    // copy RGBA values back to host
+    cudaMemcpy(sim->denseRGBA, sim->cudaRGBA, sizeof(uint8_t)*sim->width*sim->height*3, cudaMemcpyDeviceToHost);
 
 }
 
