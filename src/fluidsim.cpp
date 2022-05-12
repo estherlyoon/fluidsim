@@ -3,6 +3,7 @@
 #include "gpu_solver.cuh"
 
 #include <SFML/Graphics.hpp>
+#include <random>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 
@@ -15,12 +16,27 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
 
     if (gpu) allocDevice();
     else allocHost();
+    
+    std::random_device r;
 
+    // Choose a random mean between 1 and 6
+    std::default_random_engine e1(r());
+    std::uniform_int_distribution<int> uniform_dist(1, w-1);
+     
     // set opacity
     for (int i = 0; i < w*h; i++) {
+        int rand = uniform_dist(e1);
         // init base color to white
         for (int j = 0; j < 4; j++) 
             RGBA[i*4+j] = 255;
+        /*
+        if (i < 25600 && i > 6400) {
+            for (int j = 0; j < 3; j++) {
+                denseRGBA[i*4+j] = 255;
+            }
+            denseAdded[i] = 1.0;
+        }
+        */
         denseRGBA[i*4+3] = 255;
     }
 
@@ -56,15 +72,17 @@ void FluidSim::allocDevice() {
     cudaMalloc((void**)&cudaDenseAdded, dim);
     cudaMalloc((void**)&cudaVxAdded, dim);
     cudaMalloc((void**)&cudaVyAdded, dim);
-    cudaMalloc((void**)&cudaRGBA, sizeof(uint8_t)*width*height);
-    cudaMalloc((void**)&cudaDenseRGBA, sizeof(uint8_t)*width*height);
+    cudaMalloc((void**)&cudaRGBA, sizeof(uint8_t)*width*height*4);
+    cudaMalloc((void**)&cudaDenseRGBA, sizeof(uint8_t)*width*height*4);
 
     // init to 0
     cudaMemset(vx, 0, dim);
     cudaMemset(vy, 0, dim);
+    cudaMemset(tmpV, 0, dim);
+    cudaMemset(tmpU, 0, dim);
     cudaMemset(densities, 0, dim);
     cudaMemset(cudaRGBA, 255, sizeof(uint8_t)*width*height);
-    // TODO init cudaDenseRGBA's alpha?
+    cudaMemset(cudaDenseRGBA, 255, sizeof(uint8_t)*width*height);
 }
 
 void FluidSim::updateSimulation() {

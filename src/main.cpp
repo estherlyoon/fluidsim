@@ -15,8 +15,8 @@ int main(int argc, char* argv[]) {
 
     op::options_description desc("Options");
     desc.add_options()
-        ("w", op::value<int>(&width), "screen width in pixels")
-        ("h", op::value<int>(&height), "screen height in pixels")
+        ("width", op::value<int>(&width), "screen width in pixels")
+        ("height", op::value<int>(&height), "screen height in pixels")
         ("gpu", op::value<bool>(&gpu), "use gpu")
     ;
 

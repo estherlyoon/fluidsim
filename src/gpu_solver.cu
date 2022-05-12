@@ -9,37 +9,41 @@
 
 #define CHECK(call) \
 { \
-    const cudaError_t error = call; \
+ const cudaError_t error = call; \
     if (error != cudaSuccess) \
-    { \
-        printf("Error: %s: %d,", __FILE__, __LINE__); \
-        printf("code: %d, reason: %s\n", error, cudaGetErrorString(error)): \
-        exit(-1); \
-    } \
+   { \
+    printf("Error: %s:%d, ", __FILE__, __LINE__); \
+    printf("code:%d, reason: %s\n", error, cudaGetErrorString(error)); \
+    exit(1); \
+   } \
 }
 
 namespace gpu_solver {
 
-// TODO do for only boundary pixels? or id == 0?
-__device__ void d_setBoundary(float* v, int w, int h, int bcond) {
-    /*
-    for (int i = 1; i < h; i++) {
-        // vertical boundaries
-        v[UV(0,i,w)] = bcond == CONTAINED_X ? -v[UV(1,i,w)] : v[UV(1,i,w)];
-        v[UV(w-1,i,w)] = bcond == CONTAINED_X ? -v[UV(w-2,i,w)] : v[UV(w-2,i,w)];
+__device__ void d_setBoundary(float* v, int x, int y, int w, int h, int bcond) {
+
+    // vertical boundaries
+    if (x == 1) {
+        v[UV(0,y,w)] = bcond == CONTAINED_X ? -v[UV(1,y,w)] : v[UV(1,y,w)];
+    } else if (x == w-2) {
+        v[UV(w-1,y,w)] = bcond == CONTAINED_X ? -v[UV(w-2,y,w)] : v[UV(w-2,y,w)];
+    // horizontal boundaries
+    } else if (y == 1) {
+        v[UV(x,0,w)] = bcond == CONTAINED_Y ? -v[UV(x,1,w)] : v[UV(x,1,w)];
+    } else if (y == h-2) {
+        v[UV(x,h-1,w)] = bcond == CONTAINED_Y ? -v[UV(x,h-2,w)] : v[UV(x,h-2,w)];
     }
 
-    for (int i = 1; i < w; i++) {
-        // horizontal boundaries
-        v[UV(i,0,w)] = bcond == CONTAINED_Y ? -v[UV(i,1,w)] : v[UV(i,1,w)];
-        v[UV(i,h-1,w)] = bcond == CONTAINED_Y ? -v[UV(i,h-2,w)] : v[i,h-2,w];
+    __syncthreads();
+
+    if (x == 1) {
+        v[UV(0,0,w)] = 0.5f * (v[UV(1,0,w)] + v[UV(0,1,w)]);
+        v[UV(0,h-1,w)] = 0.5f * (v[UV(1,h-1,w)] + v[UV(0,h-2,w)]);
+        v[UV(w-1,0,w)] = 0.5f * (v[UV(w-2,0,w)] + v[UV(w-1,1,w)]);
+        v[UV(w-1,h-1,w)] = 0.5f * (v[UV(w-2,h-1,w)] + v[UV(w-1,h-2,w)]);
     }
 
-    v[UV(0,0,w)] = 0.5f * (v[UV(1,0,w)] + v[UV(0,1,w)]);
-    v[UV(0,h-1,w)] = 0.5f * (v[UV(1,h-1,w)] + v[UV(0,h-2,w)]);
-    v[UV(w-1,0,w)] = 0.5f * (v[UV(w-2,0,w)] + v[UV(w-1,1,w)]);
-    v[UV(w-1,h-1,w)] = 0.5f * (v[UV(w-2,h-1,w)] + v[UV(w-1,h-2,w)]);
-    */
+    __syncthreads();
 }
 
 __global__ void d_advect(float* vx, float* vy, float* quantity, float* tmpQuantity, float timestep, unsigned int w, unsigned int h, int bcond) {
@@ -74,9 +78,7 @@ __global__ void d_advect(float* vx, float* vy, float* quantity, float* tmpQuanti
     quantity[idx] = b1*(a1*tmpQuantity[UV(x0,y0,w)] + a0*tmpQuantity[UV(x1,y0,w)])
                 + b0*(a1*tmpQuantity[UV(x0,y1,w)] + a0*tmpQuantity[UV(x1,y1,w)]);
     
-    // SYNC
-
-    //setBoundary(quantity, w, h, bcond);
+    d_setBoundary(quantity, x, y, w, h, bcond);
 }
 
 __global__ void d_addSources(float* src, float* dest, int w, int h, float ts, float clamp) {
@@ -109,7 +111,8 @@ __global__ void d_diffuse(float* densities, float* tmpDensities, float diff_rate
                              + tmpDensities[UV(x-1,y,w)] + tmpDensities[UV(x+1,y,w)]))
                             / (1 + 4 * a);
         
-        //setBoundary(densities, w, h, bcond);
+        d_setBoundary(densities, x, y, w, h, bcond);
+        __syncthreads();
     }
 }
 
@@ -129,8 +132,8 @@ __global__ void d_project(float* vx, float* vy, float* p, float* div, int w, int
 
     __syncthreads();
 
-    //setBoundary(p, w, h, CONTINUOUS);
-    //setBoundary(div, w, h, CONTINUOUS);
+    d_setBoundary(p, x, y, w, h, CONTINUOUS);
+    d_setBoundary(div, x, y, w, h, CONTINUOUS);
 
     __syncthreads();
 
@@ -138,17 +141,14 @@ __global__ void d_project(float* vx, float* vy, float* p, float* div, int w, int
     for (int i = 0; i < iters; i++) {
         p[UV(x,y,w)] = (div[UV(x,y,w)] + p[UV(x-1,y,w)] + p[UV(x+1,y,w)]
                         + p[UV(x,y-1,w)] + p[UV(x,y+1,w)]) / 4.0f;
-        __syncthreads();
-        //setBoundary(p, w, h, CONTINUOUS);
-        // SYNC
+        d_setBoundary(p, x, y, w, h, CONTINUOUS);
     }
 
     vx[UV(x,y,w)] -= 0.5 * (p[UV(x+1,y,w)] - p[UV(x-1,y,w)]) / w0;
     vy[UV(x,y,w)] -= 0.5 * (p[UV(x,y+1,w)] - p[UV(x,y-1,w)]) / h0;
 
-    // SYNC
-    //setBoundary(vx, w, h, CONTAINED_X);
-    //setBoundary(vy, w, h, CONTAINED_Y);
+    d_setBoundary(vx, x, y, w, h, CONTAINED_X);
+    d_setBoundary(vy, x, y, w, h, CONTAINED_Y);
 }
 
 __global__ void d_updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h) {
@@ -170,17 +170,15 @@ void update(FluidSim* sim) {
     cudaMemcpy(sim->cudaVxAdded, sim->vxAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
     cudaMemcpy(sim->cudaVyAdded, sim->vyAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
     cudaMemcpy(sim->cudaDenseAdded, sim->denseAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
-    cudaMemcpy(sim->cudaRGBA, sim->RGBA, sizeof(uint8_t)*sim->width*sim->height*3, cudaMemcpyHostToDevice);
-    printf("copied stuf\n");
+    cudaMemcpy(sim->cudaRGBA, sim->RGBA, sizeof(uint8_t)*sim->width*sim->height*4, cudaMemcpyHostToDevice);
 
     // sync after every call
 
     // derive kernel configuration
-    // number of threads in each direction (TODO get over 1024)
-    dim3 blockSize(sim->width, sim->height);
-    int bx = (sim->width + blockSize.x - 1)/blockSize.x ;
-    int by = (sim->height + blockSize.y - 1)/blockSize.y ;
-    dim3 gridSize = dim3(bx, by);
+    const dim3 blockSize(32, 32);
+    int bx = (sim->width + blockSize.x - 1)/blockSize.x;
+    int by = (sim->height + blockSize.y - 1)/blockSize.y;
+    const dim3 gridSize = dim3(bx, by);
 
     // solve velocity
     d_addSources<<<gridSize, blockSize>>>(sim->cudaVxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
@@ -214,7 +212,7 @@ void update(FluidSim* sim) {
     d_updateColors<<<gridSize, blockSize>>>(sim->densities, sim->cudaRGBA, sim->cudaDenseRGBA, sim->width, sim->height);
 
     // copy RGBA values back to host
-    cudaMemcpy(sim->denseRGBA, sim->cudaRGBA, sizeof(uint8_t)*sim->width*sim->height*3, cudaMemcpyDeviceToHost);
+    cudaMemcpy(sim->denseRGBA, sim->cudaDenseRGBA, sizeof(uint8_t)*sim->width*sim->height*4, cudaMemcpyDeviceToHost);
 
 }
 

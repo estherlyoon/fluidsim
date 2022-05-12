@@ -10,7 +10,10 @@ typedef std::chrono::milliseconds ms;
 typedef std::chrono::duration<float> fsec;
 typedef std::chrono::time_point<Time> TimePoint;
 
-__host__ __device__ int UV(int x, int y, int w);
+inline __host__ __device__ int UV(int x, int y, int w) {
+    return y*w+x;
+}
+
 void swap(float** a, float** b);
 
 // boundary conditions
