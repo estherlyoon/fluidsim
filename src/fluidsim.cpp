@@ -18,6 +18,9 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
     denseRGBA = new uint8_t[w * h * 4]();
     time = Time::now();
 
+    tmpV = new float[w * h];
+    tmpU = new float[w * h];
+
     // set opacity
     for (int i = 0; i < w*h; i++) {
         // init base color to white
@@ -36,7 +39,6 @@ void FluidSim::updateSimulation() {
     float timestep = updateTimestep();
 
     if (gpu) {
-
     } else {
         cpu_solver::update(this, timestep);
     }

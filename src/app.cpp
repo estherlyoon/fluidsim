@@ -40,6 +40,7 @@ void App::event_handler(sf::Event const& event) {
             if (event.key.code == sf::Keyboard::R) {
                 // TODO reset
             } else if (event.key.code == sf::Keyboard::Space) {
+                printf("run sim\n");
                 runningSimulation = !runningSimulation;
             }
             break;
@@ -59,7 +60,6 @@ void App::event_handler(sf::Event const& event) {
             break;
         }
         case (sf::Event::MouseMoved): {
-            printf("mouseMoved\n");
             // continue applying force in drag direction
             int lastX = simulation->xPoint;
             int lastY = simulation->yPoint;
@@ -74,7 +74,6 @@ void App::event_handler(sf::Event const& event) {
                 break;
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                printf("addDensity\n");
                 simulation->addDensity(currX, currY);
             }
 

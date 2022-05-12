@@ -15,14 +15,17 @@ public:
     // per-pixel scalar fields
     float* vx; // x-direction velocity field 
     float* vy; // y-direction velocity field
-    float* pressures;
-    float* temperatures;
+    float* pressures; // TODO
+    float* temperatures; // TODO
     float* densities;
     uint8_t* RGBA;
     uint8_t* denseRGBA;
     float* denseAdded;
     float* vxAdded;
     float* vyAdded;
+
+    float* tmpV;
+    float* tmpU;
 
     unsigned int width;
     unsigned int height;

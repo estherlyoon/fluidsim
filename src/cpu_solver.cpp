@@ -26,13 +26,7 @@ void setBoundary(float* v, int w, int h, int bcond) {
     v[UV(w-1,h-1,w)] = 0.5f * (v[UV(w-2,h-1,w)] + v[UV(w-1,h-2,w)]);
 }
 
-void advect(float* vx, float* vy, float* quantity, float timestep, unsigned int w, unsigned int h, int bcond) {
-
-    const int dim = w * h;
-
-    // make tmp array for old values
-    float* currQuant = new float[dim];
-    std::memcpy(currQuant, quantity, sizeof(float) * dim);
+void advect(float* vx, float* vy, float* quantity, float* tmpQuantity, float timestep, unsigned int w, unsigned int h, int bcond) {
 
     // iterate through pixels
     for (int x = 1; x < w-1; x++) {
@@ -59,16 +53,13 @@ void advect(float* vx, float* vy, float* quantity, float timestep, unsigned int 
 
             // set quantity with interpolated values
             float lastQ = quantity[idx];
-            quantity[idx] = b1*(a1*currQuant[UV(x0,y0,w)] + a0*currQuant[UV(x1,y0,w)])
-                        + b0*(a1*currQuant[UV(x0,y1,w)] + a0*currQuant[UV(x1,y1,w)]);
+            quantity[idx] = b1*(a1*tmpQuantity[UV(x0,y0,w)] + a0*tmpQuantity[UV(x1,y0,w)])
+                        + b0*(a1*tmpQuantity[UV(x0,y1,w)] + a0*tmpQuantity[UV(x1,y1,w)]);
             
         }
     }
     
     setBoundary(quantity, w, h, bcond);
-
-    // TODO optimize
-    delete currQuant;
 }
 
 void addSources(float* src, float* dest, int w, int h, float ts, float clamp) {
@@ -153,12 +144,10 @@ void solveDensity(FluidSim* sim) {
     float diff_rate = 0.8; // TODO
     addSources(sim->denseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
 
-    int dim = sim->width * sim->height;
-    float* tmpDensities = new float[dim];
-    std::memcpy(tmpDensities, sim->densities, sizeof(float) * dim);
-
-    diffuse(sim->densities, tmpDensities, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
-    advect(sim->vx, sim->vy, sim->densities, 1.0, sim->width, sim->height, CONTINUOUS);
+    swap(sim->densities, sim->tmpV);
+    diffuse(sim->densities, sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
+    swap(sim->densities, sim->tmpV);
+    advect(sim->vx, sim->vy, sim->densities, sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
     updateColors(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
 }
 
@@ -166,21 +155,20 @@ void solveVelocity(FluidSim* sim) {
     addSources(sim->vxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
     addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
 
-    int dim = sim->width * sim->height;
     float visc = 0.5; // TODO
-    float* tmpV = new float[dim];
-    float* tmpU = new float[dim];
-    std::memcpy(tmpV, sim->vx, sizeof(float) * dim);
-    diffuse(sim->vx, tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_X);
-    std::memcpy(tmpV, sim->vy, sizeof(float) * dim);
-    diffuse(sim->vy, tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_Y);
+    swap(sim->vx, sim->tmpV);
+    diffuse(sim->vx, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_X);
+    swap(sim->vy, sim->tmpV);
+    diffuse(sim->vy, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_Y);
 
-    project(sim->vx, sim->vy, tmpV, tmpU, sim->width, sim->height, 40);
+    project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 
-    advect(sim->vx, sim->vy, sim->vx, 1.0, sim->width, sim->height, CONTAINED_X);
-    advect(sim->vx, sim->vy, sim->vy, 1.0, sim->width, sim->height, CONTAINED_Y);
+    swap(sim->vx, sim->tmpV);
+    advect(sim->vx, sim->vy, sim->vx, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_X);
+    swap(sim->vy, sim->tmpV);
+    advect(sim->vx, sim->vy, sim->vy, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_Y);
 
-    project(sim->vx, sim->vy, tmpV, tmpU, sim->width, sim->height, 40);
+    project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 }
 
 
