@@ -3,7 +3,7 @@
 
 #include <SFML/Graphics.hpp>
 
-FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu) {
+FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0) {
     // assume fluid start with zero initial velocity and pressure
     vx = new float[w * h]();
     vy = new float[w * h]();

@@ -54,8 +54,6 @@ void App::event_handler(sf::Event const& event) {
             }
 
             if (event.mouseButton.button == sf::Mouse::Right) {
-                /* simulation->addVelocity(x, y, 1, 0); */
-                /* simulation->addVelocity(x, y, 0, 1); */
                 simulation->xPoint = x;
                 simulation->yPoint = y;
             }     
@@ -63,10 +61,17 @@ void App::event_handler(sf::Event const& event) {
         }
         case (sf::Event::MouseMoved): {
             // continue applying force in drag direction
+            int lastX = simulation->xPoint;
+            int lastY = simulation->yPoint;
             float currX = static_cast<float>(event.mouseMove.x);
             float currY = static_cast<float>(event.mouseMove.y);
-            float xDir = (float)currX - simulation->xPoint;
-            float yDir = (float)currY - simulation->yPoint;
+            float xDir = currX - lastX;
+            float yDir = currY - lastY;
+
+            // bounds check
+            if (currX < 0 || currX >= gridWidth || currY < 0 || currY >= gridHeight
+                || lastX < 0 || lastX >= gridWidth || lastY < 0 || lastY >= gridHeight)
+                break;
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
                 simulation->addDensity(currX, currY);
@@ -93,7 +98,6 @@ void App::draw() {
     smokeImage.create(gridWidth, gridHeight, simulation->denseRGBA);
     smokeTexture.loadFromImage(smokeImage);
     smokeSprite.setTexture(smokeTexture);
-    /* sprite.setScale(gridWidth, gridHeight); */
 
     window->draw(smokeSprite);
     window->display();

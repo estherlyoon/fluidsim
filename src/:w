@@ -7,7 +7,6 @@
 namespace cpu_solver {
 
 void setBoundary(float* v, int w, int h, int bcond) {
-    /* printf("bcond = %d\n", bcond); */
     for (int i = 1; i < h; i++) {
         // vertical boundaries
         v[UV(0,i,w)] = bcond == CONTAINED_X ? -v[UV(1,i,w)] : v[UV(1,i,w)];
@@ -26,7 +25,7 @@ void setBoundary(float* v, int w, int h, int bcond) {
     v[UV(w-1,h-1,w)] = 0.5f * (v[UV(w-2,h-1,w)] + v[UV(w-1,h-2,w)]);
 }
 
-void advect(float* vx, float* vy, float* quantity, float timestep, unsigned int w, unsigned int h, int bcond) {
+void advect(float* vx, float* vy, float* quantity, float timestep, unsigned int w, unsigned int h, bool bcond) {
 
     const int dim = w * h;
 
@@ -81,13 +80,14 @@ void addSources(float* src, float* dest, int w, int h, float ts, float clamp) {
     }
 }
 
-void diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int h, float ts, int iters, int bcond) {
+void diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int h, float ts, int iters, bool bcond) {
     float a = ts * diff_rate * w * h;
 
     for (int k = 0; k < iters; k++) {
         for (int x = 1; x < w-1; x++) {
             for (int y = 1; y < h-1; y++) {
-                densities[UV(x,y,w)] = (tmpDensities[UV(x,y,w)] +
+                int idx = y * w + x;
+                densities[idx] = (tmpDensities[idx] +
                                 a * (tmpDensities[UV(x,y-1,w)] + tmpDensities[UV(x,y+1,w)]
                                      + tmpDensities[UV(x-1,y,w)] + tmpDensities[UV(x+1,y,w)]))
                                     / (1 + 4 * a);
@@ -140,9 +140,11 @@ void project(float* vx, float* vy, float* p, float* div, int w, int h, int iters
 void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h) {
     for (int x = 0; x < w; x++) {
         for (int y = 0; y < h; y++) {
-            float density = densities[UV(x,y,w)];
+            int idx = y * w + x;
+
+            float density = densities[idx];
             for (int c = 0; c < 3; c++) {
-                res[UV(x,y,w)*4+c] = density * RGBA[UV(x,y,w)*4+c];
+                res[idx*4+c] = density * RGBA[idx*4+c];
             }
 
         }
@@ -151,6 +153,7 @@ void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h) {
 
 void solveDensity(FluidSim* sim) {
     float diff_rate = 0.8; // TODO
+    // TODO timestep?
     addSources(sim->denseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
 
     int dim = sim->width * sim->height;

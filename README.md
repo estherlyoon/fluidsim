@@ -1,15 +1,14 @@
 TODO:
 
-make placed pixels bigger
-get forces to work and push color around
-    - add force to grid scaled by some constant?
-pressure operator
-    - divergence, more jacobi, pressure gradient
+bugs:
+force application weird
+boundaries go craZ
+
 boundary conditions
 smoke characteristics
     - temperature
     - density
-do it all in CUDA too :-)
+do it in CUDA
 
 bells and whistles:
     - variable color and size smoke added (GUI?)
