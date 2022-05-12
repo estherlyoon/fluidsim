@@ -1,15 +1,17 @@
-#ifndef __COMMON_HPP__
-#define __COMMON_HPP__
+#ifndef __COMMON_CUH__
+#define __COMMON_CUH__
 
 #include <chrono>
+#include <cuda_runtime_api.h>
+#include <cuda.h>
 
 typedef std::chrono::high_resolution_clock Time;
 typedef std::chrono::milliseconds ms;
 typedef std::chrono::duration<float> fsec;
 typedef std::chrono::time_point<Time> TimePoint;
 
-int UV(int x, int y, int w);
-void swap(float* a, float* b);
+__host__ __device__ int UV(int x, int y, int w);
+void swap(float** a, float** b);
 
 // boundary conditions
 #define CONTAINED_X 0

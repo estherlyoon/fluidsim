@@ -20,15 +20,19 @@ include_directories(${Boost_INCLUDE_DIRS})
 set(APP_FILES "src/app.cpp"
               "src/app.hpp"
               "src/main.cpp"
-              "src/common.cpp"
-              "src/common.hpp"
+              "src/common.cu"
+              "src/common.cuh"
               "src/fluidsim.cpp"
               "src/fluidsim.hpp"
               "src/cpu_solver.cpp"
               "src/cpu_solver.hpp"
+              "src/gpu_solver.cu"
+              "src/gpu_solver.cuh"
               ) 
 
 add_executable(fluid-sim ${APP_FILES})
 
 target_link_libraries(fluid-sim sfml-graphics sfml-audio sfml-window sfml-system ${Boost_LIBRARIES})
-
+target_compile_options(fluid-sim PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
+                       --device-c
+                        >)

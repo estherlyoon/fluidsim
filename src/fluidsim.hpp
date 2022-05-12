@@ -1,7 +1,7 @@
 #ifndef __FLUID_SIM_HPP__
 #define __FLUID_SIM_HPP__
 
-#include "common.hpp"
+#include "common.cuh"
 
 #include <vector>
 #include <stdint.h>
@@ -44,6 +44,9 @@ public:
     float updateTimestep();
     void addDensity(int x, int y);
     void addVelocity(int x, int y, float dx, float dy);
+    void allocHost();
+    void allocDevice();
+
 };
 
 

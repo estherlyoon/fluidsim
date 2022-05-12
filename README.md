@@ -1,9 +1,5 @@
 TODO:
 
-bugs:
-force application weird
-boundaries go craZ
-
 boundary conditions
 smoke characteristics
     - temperature

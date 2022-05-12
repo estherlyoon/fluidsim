@@ -1,5 +1,5 @@
 #include "cpu_solver.hpp"
-#include "common.hpp"
+#include "common.cuh"
 
 #include <cstring>
 #include <iostream>
@@ -144,9 +144,9 @@ void solveDensity(FluidSim* sim) {
     float diff_rate = 0.8; // TODO
     addSources(sim->denseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
 
-    swap(sim->densities, sim->tmpV);
+    swap(&sim->densities, &sim->tmpV);
     diffuse(sim->densities, sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
-    swap(sim->densities, sim->tmpV);
+    swap(&sim->densities, &sim->tmpV);
     advect(sim->vx, sim->vy, sim->densities, sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
     updateColors(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
 }
@@ -156,23 +156,23 @@ void solveVelocity(FluidSim* sim) {
     addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
 
     float visc = 0.5; // TODO
-    swap(sim->vx, sim->tmpV);
+    swap(&sim->vx, &sim->tmpV);
     diffuse(sim->vx, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_X);
-    swap(sim->vy, sim->tmpV);
+    swap(&sim->vy, &sim->tmpV);
     diffuse(sim->vy, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_Y);
 
     project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 
-    swap(sim->vx, sim->tmpV);
+    swap(&sim->vx, &sim->tmpV);
     advect(sim->vx, sim->vy, sim->vx, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_X);
-    swap(sim->vy, sim->tmpV);
+    swap(&sim->vy, &sim->tmpV);
     advect(sim->vx, sim->vy, sim->vy, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_Y);
 
     project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 }
 
 
-void update(FluidSim* sim, float timestep) {
+void update(FluidSim* sim) {
     solveVelocity(sim);
     solveDensity(sim);
 }
