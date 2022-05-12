@@ -21,7 +21,6 @@
 namespace gpu_solver {
 
 __device__ void d_setBoundary(float* v, int x, int y, int w, int h, int bcond) {
-
     // vertical boundaries
     if (x == 1) {
         v[UV(0,y,w)] = bcond == CONTAINED_X ? -v[UV(1,y,w)] : v[UV(1,y,w)];
@@ -36,12 +35,14 @@ __device__ void d_setBoundary(float* v, int x, int y, int w, int h, int bcond) {
 
     __syncthreads();
 
-    if (x == 1) {
+    if (x == 1 && y == 1)
         v[UV(0,0,w)] = 0.5f * (v[UV(1,0,w)] + v[UV(0,1,w)]);
+    if (x == 1 && y == h-2)
         v[UV(0,h-1,w)] = 0.5f * (v[UV(1,h-1,w)] + v[UV(0,h-2,w)]);
+    if (x == w-2 && y == 1)
         v[UV(w-1,0,w)] = 0.5f * (v[UV(w-2,0,w)] + v[UV(w-1,1,w)]);
+    if (x == w-2 && y == h-2)
         v[UV(w-1,h-1,w)] = 0.5f * (v[UV(w-2,h-1,w)] + v[UV(w-1,h-2,w)]);
-    }
 
     __syncthreads();
 }
@@ -93,7 +94,6 @@ __global__ void d_addSources(float* src, float* dest, int w, int h, float ts, fl
         dest[i] = fminf(clamp, dest[i] + ts*src[i]);
     else
         dest[i] += ts*src[i];
-    src[i] = 0;
 }
 
 __global__ void d_diffuse(float* densities, float* tmpDensities, float diff_rate, int w, int h, float ts, int iters, int bcond) {
@@ -116,7 +116,36 @@ __global__ void d_diffuse(float* densities, float* tmpDensities, float diff_rate
     }
 }
 
-__global__ void d_project(float* vx, float* vy, float* p, float* div, int w, int h, int iters) {
+__global__ void d_project1(float* vx, float* vy, float* p, float* div, int w, int h) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x < 1 || y < 1 || x >= (w-1) || y >= (h-1))
+        return;
+
+    float h0 = 1.0f / h;
+
+    div[UV(x,y,w)] = -0.5f*h0*(vy[UV(x,y+1,w)] - vy[UV(x,y-1,w)]
+                         + vx[UV(x+1,y,w)] - vx[UV(x-1,y,w)]);
+    p[UV(x,y,w)] = 0;
+
+    d_setBoundary(p, x, y, w, h, CONTINUOUS);
+    d_setBoundary(div, x, y, w, h, CONTINUOUS);
+}
+
+__global__ void d_project2(float* vx, float* vy, float* p, float* div, int w, int h) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x < 1 || y < 1 || x >= (w-1) || y >= (h-1))
+        return;
+
+    p[UV(x,y,w)] = (div[UV(x,y,w)] + p[UV(x-1,y,w)] + p[UV(x+1,y,w)]
+                    + p[UV(x,y-1,w)] + p[UV(x,y+1,w)]) / 4.0f;
+    d_setBoundary(p, x, y, w, h, CONTINUOUS);
+}
+
+__global__ void d_project3(float* vx, float* vy, float* p, float* div, int w, int h) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -125,24 +154,6 @@ __global__ void d_project(float* vx, float* vy, float* p, float* div, int w, int
 
     float h0 = 1.0f / h;
     float w0 = 1.0f / w;
-
-    div[UV(x,y,w)] = -0.5f*h0*(vy[UV(x,y+1,w)] - vy[UV(x,y-1,w)]
-                         + vx[UV(x+1,y,w)] - vx[UV(x-1,y,w)]);
-    p[UV(x,y,w)] = 0;
-
-    __syncthreads();
-
-    d_setBoundary(p, x, y, w, h, CONTINUOUS);
-    d_setBoundary(div, x, y, w, h, CONTINUOUS);
-
-    __syncthreads();
-
-    // set bnd for div, p
-    for (int i = 0; i < iters; i++) {
-        p[UV(x,y,w)] = (div[UV(x,y,w)] + p[UV(x-1,y,w)] + p[UV(x+1,y,w)]
-                        + p[UV(x,y-1,w)] + p[UV(x,y+1,w)]) / 4.0f;
-        d_setBoundary(p, x, y, w, h, CONTINUOUS);
-    }
 
     vx[UV(x,y,w)] -= 0.5 * (p[UV(x+1,y,w)] - p[UV(x-1,y,w)]) / w0;
     vy[UV(x,y,w)] -= 0.5 * (p[UV(x,y+1,w)] - p[UV(x,y-1,w)]) / h0;
@@ -159,9 +170,18 @@ __global__ void d_updateColors(float* densities, uint8_t* RGBA, uint8_t* res, in
         return;
 
     float density = densities[UV(x,y,w)];
+
     for (int c = 0; c < 3; c++) {
         res[UV(x,y,w)*4+c] = density * RGBA[UV(x,y,w)*4+c];
     }
+    res[UV(x,y,w)*4+3] = 255;
+}
+
+void projectAll(dim3 gridSize, dim3 blockSize, float* vx, float* vy, float* p, float* div, int w, int h, int iters) {
+    d_project1<<<gridSize, blockSize>>>(vx, vy, p, div, w, h);
+    for (int i = 0; i < iters; i++)
+        d_project2<<<gridSize, blockSize>>>(vx, vy, p, div, w, h);
+    d_project3<<<gridSize, blockSize>>>(vx, vy, p, div, w, h);
 }
 
 
@@ -170,9 +190,9 @@ void update(FluidSim* sim) {
     cudaMemcpy(sim->cudaVxAdded, sim->vxAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
     cudaMemcpy(sim->cudaVyAdded, sim->vyAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
     cudaMemcpy(sim->cudaDenseAdded, sim->denseAdded, sizeof(float)*sim->width*sim->height, cudaMemcpyHostToDevice);
-    cudaMemcpy(sim->cudaRGBA, sim->RGBA, sizeof(uint8_t)*sim->width*sim->height*4, cudaMemcpyHostToDevice);
-
-    // sync after every call
+    memset(sim->vxAdded, 0, sizeof(float)*sim->width*sim->height);
+    memset(sim->vyAdded, 0, sizeof(float)*sim->width*sim->height);
+    memset(sim->denseAdded, 0, sizeof(float)*sim->width*sim->height);
 
     // derive kernel configuration
     const dim3 blockSize(32, 32);
@@ -191,14 +211,14 @@ void update(FluidSim* sim) {
     swap(&sim->vy, &sim->tmpV);
     d_diffuse<<<gridSize, blockSize>>>(sim->vy, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_Y);
 
-    d_project<<<gridSize, blockSize>>>(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
+    projectAll(gridSize, blockSize, sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 
     swap(&sim->vx, &sim->tmpV);
     d_advect<<<gridSize, blockSize>>>(sim->vx, sim->vy, sim->vx, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_X);
     swap(&sim->vy, &sim->tmpV);
     d_advect<<<gridSize, blockSize>>>(sim->vx, sim->vy, sim->vy, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_Y);
 
-    d_project<<<gridSize, blockSize>>>(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
+    projectAll(gridSize, blockSize, sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
      
     // solve density
     float diff_rate = 0.8;

@@ -24,21 +24,27 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
     std::uniform_int_distribution<int> uniform_dist(1, w-1);
      
     // set opacity
-    for (int i = 0; i < w*h; i++) {
-        int rand = uniform_dist(e1);
-        // init base color to white
-        for (int j = 0; j < 4; j++) 
-            RGBA[i*4+j] = 255;
-        /*
-        if (i < 25600 && i > 6400) {
-            for (int j = 0; j < 3; j++) {
-                denseRGBA[i*4+j] = 255;
+    for (int x = 0; x < w; x++) {
+        for (int y = 0; y < h; y++) {
+            int i = y * w + x;
+            int rand = uniform_dist(e1);
+            // init base color to white
+            for (int j = 0; j < 4; j++) 
+                RGBA[i*4+j] = 255;
+            if (x > 0 && y > 0 && x < w-1 && y < h-1 && (i > 12800 && i < 25600) || (i < 102400 && i > 80000)) {
+                for (int j = 0; j < 3; j++) {
+                    denseRGBA[i*4+j] = 255;
+                }
+                denseAdded[i] = 1.0;
+                vyAdded[i] = 1.0;
+                vxAdded[i] = 1.0;
             }
-            denseAdded[i] = 1.0;
+            denseRGBA[i*4+3] = 255;
         }
-        */
-        denseRGBA[i*4+3] = 255;
     }
+
+    if (gpu)
+        cudaMemcpy(cudaRGBA, RGBA, sizeof(uint8_t)*width*height*4, cudaMemcpyHostToDevice);
 
 }
 
