@@ -4,10 +4,9 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-// TODO parameterize w, h, gpu
-App::App() : gridWidth(200), gridHeight(200), runningSimulation(false) {
+App::App(int w, int h, bool gpu) : gridWidth(w), gridHeight(h), runningSimulation(false) {
     window = new sf::RenderWindow(sf::VideoMode(gridWidth, gridHeight), "SmokeSim");
-    simulation = new FluidSim(gridWidth, gridHeight, false);
+    simulation = new FluidSim(gridWidth, gridHeight, gpu);
     smokeTexture.create(gridWidth, gridHeight);
 }
 
@@ -60,6 +59,7 @@ void App::event_handler(sf::Event const& event) {
             break;
         }
         case (sf::Event::MouseMoved): {
+            printf("mouseMoved\n");
             // continue applying force in drag direction
             int lastX = simulation->xPoint;
             int lastY = simulation->yPoint;
@@ -74,6 +74,7 @@ void App::event_handler(sf::Event const& event) {
                 break;
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                printf("addDensity\n");
                 simulation->addDensity(currX, currY);
             }
 

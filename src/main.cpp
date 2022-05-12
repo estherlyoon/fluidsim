@@ -9,9 +9,9 @@ namespace op = boost::program_options;
 
 int main(int argc, char* argv[]) {
 
-    int width;
-    int height;
-    bool gpu;
+    int width = 200;
+    int height = 200;
+    bool gpu = false;
 
     op::options_description desc("Options");
     desc.add_options()
@@ -21,10 +21,10 @@ int main(int argc, char* argv[]) {
     ;
 
     op::variables_map vm;
-    op::store(op::parse_command_line(argc, argv, desc,), vm);
+    op::store(op::parse_command_line(argc, argv, desc), vm);
     op::notify(vm);
 
-    App* app = new App();
+    App* app = new App(width, height, gpu);
     app->run();
     return 0;
 }

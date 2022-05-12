@@ -15,11 +15,11 @@ public:
     sf::Texture smokeTexture;
     FluidSim* simulation;
 
-    unsigned int gridWidth;
-    unsigned int gridHeight;
+    int gridWidth;
+    int gridHeight;
     bool runningSimulation;
 
-    App();
+    App(int w, int h, bool gpu);
 
     ~App();
 
