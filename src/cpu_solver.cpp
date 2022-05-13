@@ -128,11 +128,11 @@ void project(float* vx, float* vy, float* p, float* div, int w, int h, int iters
     setBoundary(vy, w, h, CONTAINED_Y);
 }
 
-void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h, int color) {
+void updateColors(float* densities, uint8_t* res, int w, int h, int color) {
     for (int x = 0; x < w; x++) {
         for (int y = 0; y < h; y++) {
             float density = densities[UV(x,y,w)];
-            res[UV(x,y,w)*4+color] = density * 255.0f; //RGBA[UV(x,y,w)*4+color];
+            res[UV(x,y,w)*4+color] = density * 255.0f;
         }
     }
 }
@@ -145,12 +145,13 @@ void solveDensity(FluidSim* sim, int c) {
     diffuse(sim->densities[c], sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
     swap(&sim->densities[c], &sim->tmpV);
     advect(sim->vx, sim->vy, sim->densities[c], sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
-    updateColors(sim->densities[c], sim->RGBA, sim->denseRGBA, sim->width, sim->height, c);
+    updateColors(sim->densities[c], sim->denseRGBA, sim->width, sim->height, c);
 }
 
 void solveVelocity(FluidSim* sim) {
     addSources(sim->vxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
     addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
+    addSources(sim->tempAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
 
     float visc = 0.5; // TODO
     swap(&sim->vx, &sim->tmpV);

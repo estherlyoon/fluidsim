@@ -21,7 +21,8 @@ public:
     // per-pixel scalar fields
     float* vx; // x-direction velocity field 
     float* vy; // y-direction velocity field
-    float* temperatures; // TODO
+    float* temperatures;
+    float* tempAdded;
     float* densities[3];
     uint8_t* RGBA;
     uint8_t* denseRGBA;
@@ -49,6 +50,10 @@ public:
 
     // color
     float currColor[3];
+
+    // temperature
+    float kd; // mass scale factor * smoke density
+    float tempDelta; // ambient temperature difference
 
     FluidSim(unsigned int w, unsigned int h, bool gpu);
     ~FluidSim();

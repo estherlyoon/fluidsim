@@ -7,11 +7,10 @@
 /* #include <cuda_runtime_api.h> */
 /* #include <cuda.h> */
 
-FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0) {
+FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0), kd(2.0), tempDelta(1.0) {
     vxAdded = new float[w * h]();
     vyAdded = new float[w * h]();
     denseRGBA = new uint8_t[w * h * 4]();
-    RGBA = new uint8_t[w * h * 4]();
     for (int i = 0; i < 3; i++) {
         denseAdded[i] = new float[w * h]();
         currColor[i] = 1.0;
@@ -26,7 +25,6 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
             int i = y * w + x;
             // init base color to white
             for (int j = 0; j < 4; j++) 
-                RGBA[i*4+j] = 255;
             if (x > 0 && y > 0 && x < w-1 && y < h-1 && (i > 12800 && i < 25600) || (i < 102400 && i > 80000)) {
                 for (int j = 0; j < 3; j++) {
                     denseRGBA[i*4+j] = 255;
@@ -34,10 +32,11 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
                 denseAdded[0][i] = 1.0;
                 denseAdded[1][i] = 1.0;
                 denseAdded[2][i] = 1.0;
-                vyAdded[i] = 1.0;
-                vxAdded[i] = 1.0;
+                /* vyAdded[i] = 1.0; */
+                /* vxAdded[i] = 1.0; */
             }
             denseRGBA[i*4+3] = 255;
+            tempAdded[i] -= 2.0;
         }
     }
 
@@ -52,6 +51,8 @@ FluidSim::~FluidSim() {
 
 void FluidSim::reset() {
     size_t dim = sizeof(float) * width * height;
+    memset(denseRGBA, 0, sizeof(uint8_t) * 4 * width * height);
+
     if (gpu) {
         // TODO
     } else {
@@ -59,6 +60,7 @@ void FluidSim::reset() {
         memset(vy, 0, dim);
         memset(vxAdded, 0, dim);
         memset(vyAdded, 0, dim);
+        memset(tempAdded, 0, dim);
         memset(densities[0], 0, dim);
         memset(densities[1], 0, dim);
         memset(densities[2], 0, dim);
@@ -70,16 +72,15 @@ void FluidSim::reset() {
             denseRGBA[i*4+3] = 255;
         }
     }
-
-    memset(denseRGBA, 0, sizeof(uint8_t) * 4 * width * height);
 }
 
 void FluidSim::allocHost() {
     size_t dim = width * height;
-    // assume fluid start with zero initial velocity
+    // assume fluid starts with zero initial velocity and temperature
     vx = new float[dim]();
     vy = new float[dim]();
     temperatures = new float[dim]();
+    tempAdded = new float[dim]();
     for (int i = 0; i < 3; i++)
         densities[i] = new float[dim]();
 
@@ -90,8 +91,8 @@ void FluidSim::allocHost() {
 
 void FluidSim::setColor(float r, float g, float b) {
     currColor[0] = r;
-    currColor[1] = b;
-    currColor[2] = g;
+    currColor[1] = g;
+    currColor[2] = b;
 }
 
 void FluidSim::changeColor(SmokeColor c) {
@@ -153,11 +154,11 @@ void FluidSim::addDensity(int x, int y) {
             if (idx < 0 || idx >= width * height)
                 continue;
 
+            tempAdded[idx] += -1 * kd * tempDelta;
+
             for (int k = 0; k < 3; k++) {
                 denseAdded[k][idx] = currColor[k];
                 denseRGBA[idx*4+k] = 255*currColor[k];
-                // TODO not needed anymore?
-                RGBA[idx*4+k] = std::min(255.0f, RGBA[idx*4+k]+255*currColor[k]);
             }
         }
     }
