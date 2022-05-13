@@ -1,5 +1,5 @@
 #include "cpu_solver.hpp"
-#include "common.cuh"
+#include "common.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -128,27 +128,24 @@ void project(float* vx, float* vy, float* p, float* div, int w, int h, int iters
     setBoundary(vy, w, h, CONTAINED_Y);
 }
 
-void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h) {
+void updateColors(float* densities, uint8_t* RGBA, uint8_t* res, int w, int h, int color) {
     for (int x = 0; x < w; x++) {
         for (int y = 0; y < h; y++) {
             float density = densities[UV(x,y,w)];
-            for (int c = 0; c < 3; c++) {
-                res[UV(x,y,w)*4+c] = density * RGBA[UV(x,y,w)*4+c];
-            }
-
+            res[UV(x,y,w)*4+color] = density * 255.0f; //RGBA[UV(x,y,w)*4+color];
         }
     }
 }
 
-void solveDensity(FluidSim* sim) {
+void solveDensity(FluidSim* sim, int c) {
     float diff_rate = 0.8; // TODO
-    addSources(sim->denseAdded, sim->densities, sim->width, sim->height, 1.0, 1.0f);
+    addSources(sim->denseAdded[c], sim->densities[c], sim->width, sim->height, 1.0, 1.0f);
 
-    swap(&sim->densities, &sim->tmpV);
-    diffuse(sim->densities, sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
-    swap(&sim->densities, &sim->tmpV);
-    advect(sim->vx, sim->vy, sim->densities, sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
-    updateColors(sim->densities, sim->RGBA, sim->denseRGBA, sim->width, sim->height);
+    swap(&sim->densities[c], &sim->tmpV);
+    diffuse(sim->densities[c], sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
+    swap(&sim->densities[c], &sim->tmpV);
+    advect(sim->vx, sim->vy, sim->densities[c], sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
+    updateColors(sim->densities[c], sim->RGBA, sim->denseRGBA, sim->width, sim->height, c);
 }
 
 void solveVelocity(FluidSim* sim) {
@@ -174,7 +171,9 @@ void solveVelocity(FluidSim* sim) {
 
 void update(FluidSim* sim) {
     solveVelocity(sim);
-    solveDensity(sim);
+    solveDensity(sim, 0);
+    solveDensity(sim, 1);
+    solveDensity(sim, 2);
 }
 
 
