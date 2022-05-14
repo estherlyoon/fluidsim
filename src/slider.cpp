@@ -1,5 +1,5 @@
 #include "slider.hpp"
-#include "common.hpp"
+#include "common.cuh"
 
 #include <string>
 

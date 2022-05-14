@@ -2,6 +2,7 @@
 #define __COMMON_CUH__
 
 #include <chrono>
+#include <string>
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 
@@ -10,11 +11,12 @@ typedef std::chrono::milliseconds ms;
 typedef std::chrono::duration<float> fsec;
 typedef std::chrono::time_point<Time> TimePoint;
 
-inline __host__ __device__ int UV(int x, int y, int w) {
+inline __device__ __host__ int UV(int x, int y, int w) {
     return y*w+x;
 }
 
 void swap(float** a, float** b);
+std::string ftos(float v);
 
 // boundary conditions
 #define CONTAINED_X 0

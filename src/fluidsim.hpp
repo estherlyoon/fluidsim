@@ -1,7 +1,7 @@
 #ifndef __FLUID_SIM_HPP__
 #define __FLUID_SIM_HPP__
 
-#include "common.hpp"
+#include "common.cuh"
 
 #include <vector>
 #include <stdint.h>
@@ -26,14 +26,14 @@ public:
     float* densities[3];
     uint8_t* RGBA;
     uint8_t* denseRGBA;
-    uint8_t* cudaRGBA;
     uint8_t* cudaDenseRGBA;
     float* denseAdded[3];
     float* vxAdded;
     float* vyAdded;
-    float* cudaDenseAdded;
+    float* cudaDenseAdded[3];
     float* cudaVxAdded;
     float* cudaVyAdded;
+    float* cudaTempAdded;
 
     float* tmpV;
     float* tmpU;
