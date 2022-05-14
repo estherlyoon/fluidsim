@@ -1,24 +1,24 @@
-## 2D Smoke Simulation in CUDA
+# 2D Smoke Simulation in CUDA
 Two-dimensional smoke simulation written in C++ and CUDA. I used the Navier-Stokes equation and the methods described in Stam's 2003 paper "Real-Time Fluid Dynamics for Games" for my implementation.
 
-# Dependencies
+## Dependencies
 - SFML > 2.0
 - Boost
 - C++
 - NVIDIA CUDA Toolkit
 
-# To Run
+## To Run
 - `mkdir build && cd build`
 - `cmake ..`
 - in the build directory, `make`
 - `./bin/fluid-sim`
 
-# Command-line Options
+## Command-line Options
 - `--gpu <bool>` to run the CUDA version
 - `--width <int>` to specify simulation width in pixels
 - `--height <int>` to specify simulation height in pixels
 
-# Controls
+## Controls
 - Press R key to reset the simulation
 - Press Space key to start or pause the simulation
 - Left-click and drag to add dye/draw boundaries
