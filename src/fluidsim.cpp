@@ -4,8 +4,8 @@
 
 #include <SFML/Graphics.hpp>
 #include <cstring>
-#include <cuda_runtime_api.h>
-#include <cuda.h>
+/* #include <cuda_runtime_api.h> */
+/* #include <cuda.h> */
 
 FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0), kd(2.0), timeDelta(1.0), viscosity(1.0), smokeSize(3.0), tempDelta(1.0) {
     vxAdded = new float[w * h]();
@@ -21,8 +21,21 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
 
     if (gpu) allocDevice();
     else allocHost();
+
+/*     for (int i = -1; i < 2; i++) { */
+/*         for (int j = -1; j < 2; j++) { */
+/*             addBoundary(100+i, 150+j); */
+/*         } */
+/*     } */
+
+/*     for (int i = -1; i < 2; i++) { */
+/*         for (int j = -1; j < 2; j++) { */
+/*             printf("(%d, %d) isCenter = %d\n", 150+i, 100+j, isCenter(UV(100+i,150+j,width), bounds)); */
+/*         } */
+/*     } */
     
     // set opacity
+    /*
     for (int x = 0; x < w; x++) {
         for (int y = 0; y < h; y++) {
             int i = y * w + x;
@@ -48,6 +61,11 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
             tempAdded[i] -= 2.0;
         }
     }
+    */
+
+    for (int i = 0; i < width*height; i++) {
+        denseRGBA[i*4+3] = 255;
+    }
 }
 
 FluidSim::~FluidSim() {
@@ -59,12 +77,14 @@ void FluidSim::reset() {
     memset(denseRGBA, 0, sizeof(uint8_t) * 4 * width * height);
 
     if (gpu) {
+        /*
         cudaMemset(vx, 0, dim);
         cudaMemset(vy, 0, dim);
         cudaMemset(densities[0], 0, dim);
         cudaMemset(densities[1], 0, dim);
         cudaMemset(densities[2], 0, dim);
         cudaMemset(cudaBounds, 0, sizeof(uint8_t) * width * height);
+        */
     } else {
         memset(vx, 0, dim);
         memset(vy, 0, dim);
@@ -102,6 +122,7 @@ void FluidSim::allocHost() {
 
 void FluidSim::allocDevice() {
     size_t dim = sizeof(float) * width * height;
+    /*
     cudaMalloc((void**)&vx, dim);
     cudaMalloc((void**)&vy, dim);
     cudaMalloc((void**)&temperatures, dim);
@@ -126,6 +147,7 @@ void FluidSim::allocDevice() {
     cudaMemset(cudaDenseRGBA, 255, sizeof(uint8_t)*width*height);
     for (int i = 0; i < 3; i++)
         cudaMemset(densities[i], 0, dim);
+    */
 }
  
 void FluidSim::setColor(float r, float g, float b) {
@@ -155,7 +177,7 @@ void FluidSim::updateSimulation() {
     float timestep = updateTimestep();
 
     if (gpu) {
-        gpu_solver::update(this);
+        //gpu_solver::update(this);
     } else {
         cpu_solver::update(this);
     }
@@ -166,6 +188,8 @@ void FluidSim::addDensity(int x, int y) {
         for (int j = -smokeSize+1; j < smokeSize+1; j++) {
             int idx = (y + i) * width + x + j;
             if (idx < 0 || idx >= width * height)
+                continue;
+            if (isCenter(idx, bounds))
                 continue;
 
             tempAdded[idx] += -1 * kd * tempDelta;

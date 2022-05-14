@@ -71,7 +71,7 @@ void App::event_handler(sf::Event const& event) {
             } else if (event.key.code == sf::Keyboard::Num4) {
                 simulation->changeColor(SmokeColor::BLUE);
             } else if (event.key.code == sf::Keyboard::B) {
-                addBounds = true;
+                addBounds = !addBounds;
             }
             break;
         }
@@ -80,8 +80,13 @@ void App::event_handler(sf::Event const& event) {
             int y = event.mouseButton.y;
 
             if (event.mouseButton.button == sf::Mouse::Left) {
-                if (x < simWidth && y < gridHeight)
-                    simulation->addDensity(x, y);
+                if (x < simWidth && y < gridHeight) {
+                    if (addBounds) {
+                        simulation->addBoundary(x, y);
+                    } else {
+                        simulation->addDensity(x, y);
+                    }
+                }
                 viscSlider.onMousePressed(x, y);
                 timeSlider.onMousePressed(x, y);
                 sizeSlider.onMousePressed(x, y);

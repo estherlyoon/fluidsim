@@ -49,8 +49,26 @@ void setCellType(Boundary b, int idx, uint8_t* bounds) {
         case WEST:
             setWest(idx, bounds);
             break;
+        case NE:
+            setNorth(idx, bounds);
+            setEast(idx, bounds);
+            break;
+        case NW:
+            setNorth(idx, bounds);
+            setWest(idx, bounds);
+            break;
+        case SW:
+            setSouth(idx, bounds);
+            setWest(idx, bounds);
+            break;
+        case SE:
+            setSouth(idx, bounds);
+            setEast(idx, bounds);
+            break;
         case CENTER:
             setCenter(idx, bounds);
+            break;
+        default:
             break;
     }
 }
