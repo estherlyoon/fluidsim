@@ -11,7 +11,7 @@ Two-dimensional smoke simulation written in C++ and CUDA. I used the Navier-Stok
 - `mkdir build && cd build`
 - `cmake ..`
 - in the build directory, `make`
-- `./bin/fluid-sim`
+- `./fluid-sim`
 
 ## Command-line Options
 - `--gpu <bool>` to run the CUDA version
