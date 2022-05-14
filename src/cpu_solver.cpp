@@ -1,5 +1,5 @@
 #include "cpu_solver.hpp"
-#include "common.hpp"
+#include "common.cuh"
 
 #include <cstring>
 #include <iostream>

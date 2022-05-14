@@ -28,6 +28,8 @@ set(APP_FILES "src/app.cpp"
               "src/cpu_solver.hpp"
               "src/gpu_solver.cu"
               "src/gpu_solver.cuh"
+              "src/slider.cpp"
+              "src/slider.hpp"
               ) 
 
 add_executable(fluid-sim ${APP_FILES})

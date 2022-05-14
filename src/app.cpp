@@ -81,7 +81,7 @@ void App::event_handler(sf::Event const& event) {
 
             if (event.mouseButton.button == sf::Mouse::Left) {
                 if (x < simWidth && y < gridHeight) {
-                    if (addBounds) {
+                    if (addBounds && !simulation->gpu) {
                         simulation->addBoundary(x, y);
                     } else {
                         simulation->addDensity(x, y);
@@ -116,7 +116,7 @@ void App::event_handler(sf::Event const& event) {
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
                 if (currX < simWidth && currY < gridHeight) {
-                    if (addBounds) {
+                    if (addBounds && !simulation->gpu) {
                         simulation->addBoundary(currX, currY);
                     } else {
                         simulation->addDensity(currX, currY);

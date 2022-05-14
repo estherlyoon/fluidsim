@@ -1,7 +1,7 @@
 #ifndef __FLUID_SIM_HPP__
 #define __FLUID_SIM_HPP__
 
-#include "common.hpp"
+#include "common.cuh"
 
 #include <vector>
 #include <stdint.h>

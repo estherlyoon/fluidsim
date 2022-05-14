@@ -4,8 +4,8 @@
 
 #include <SFML/Graphics.hpp>
 #include <cstring>
-/* #include <cuda_runtime_api.h> */
-/* #include <cuda.h> */
+#include <cuda_runtime_api.h>
+#include <cuda.h>
 
 FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0), kd(2.0), timeDelta(1.0), viscosity(1.0), smokeSize(3.0), tempDelta(1.0) {
     vxAdded = new float[w * h]();
