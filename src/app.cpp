@@ -1,18 +1,34 @@
 #include "app.hpp"
 #include "cpu_solver.hpp"
+#include "slider.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
-App::App(int w, int h, bool gpu) : gridWidth(w), gridHeight(h), runningSimulation(false) {
+App::App(int w, int h, bool gpu) : gridHeight(h), runningSimulation(false) {
+    simWidth = w;
+    sidebarWidth = 240;
+    gridWidth = w + sidebarWidth;
+    gridHeight = std::max(h, 240);
     window = new sf::RenderWindow(sf::VideoMode(gridWidth, gridHeight), "SmokeSim");
-    simulation = new FluidSim(gridWidth, gridHeight, gpu);
+    simulation = new FluidSim(simWidth, gridHeight, gpu);
     smokeTexture.create(gridWidth, gridHeight);
 
-    char* filename = "test.avi";
-    int rc = initVideo(filename);
-    if (rc != 0)
-        std::cerr << "Failed to initialize video: " << rc << std::endl;
+
+    // sidebar
+    sidebar = sf::RectangleShape(sf::Vector2f(sidebarWidth, gridHeight));
+    sidebar.setFillColor(sf::Color(220, 220, 220));
+    sidebar.setPosition(gridWidth-sidebarWidth, 0);
+
+    // init sliders
+    int sHeight = 30;
+    int sWidth = sidebarWidth - 20;
+    sf::Vector2f sPos(sidebar.getPosition().x+(sidebarWidth-sWidth)/2, 10);
+
+    viscSlider.initialize(sWidth, sHeight, (int)sPos.x, (int)sPos.y, "Viscosity", 0.0, 0.1, 1.0, 1.0);
+    tempSlider.initialize(sWidth, sHeight, (int)sPos.x, (int)sPos.y + 50, "Temperature", 0.0, 0.1, 5.0, 1.0);
+    timeSlider.initialize(sWidth, sHeight, (int)sPos.x, (int)sPos.y + 100, "Time Delta", 0.1, 0.1, 5.0, 1.0);
+    sizeSlider.initialize(sWidth, sHeight, (int)sPos.x, (int)sPos.y + 150, "Dye Size", 1.0, 0.1, 5.0, 3.0);
 }
 
 App::~App() {
@@ -31,11 +47,8 @@ void App::run() {
         }
 
         window->clear();
-        display();
         draw();
     }
-
-    closeVideo();
 }
 
 void App::event_handler(sf::Event const& event) {
@@ -66,7 +79,13 @@ void App::event_handler(sf::Event const& event) {
             int y = event.mouseButton.y;
 
             if (event.mouseButton.button == sf::Mouse::Left) {
-                simulation->addDensity(x, y);
+                if (x < simWidth && y < gridHeight)
+                    simulation->addDensity(x, y);
+                viscSlider.onMousePressed(x, y);
+                timeSlider.onMousePressed(x, y);
+                sizeSlider.onMousePressed(x, y);
+                tempSlider.onMousePressed(x, y);
+                updateSliders();
             }
 
             if (event.mouseButton.button == sf::Mouse::Right) {
@@ -90,7 +109,13 @@ void App::event_handler(sf::Event const& event) {
                 break;
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                simulation->addDensity(currX, currY);
+                if (currX < simWidth && currY < gridHeight)
+                    simulation->addDensity(currX, currY);
+                viscSlider.onMouseMoved(currX, currY);
+                tempSlider.onMouseMoved(currX, currY);
+                sizeSlider.onMouseMoved(currX, currY);
+                timeSlider.onMouseMoved(currX, currY);
+                updateSliders();
             }
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
@@ -103,6 +128,13 @@ void App::event_handler(sf::Event const& event) {
     }
 }
 
+void App::updateSliders() {
+    simulation->viscosity = viscSlider.getValue();
+    simulation->timeDelta = timeSlider.getValue();
+    simulation->tempDelta = tempSlider.getValue();
+    simulation->smokeSize = sizeSlider.getValue();
+}
+
 void App::update() {
     simulation->updateSimulation();
 }
@@ -111,118 +143,18 @@ void App::update() {
 void App::draw() {
     // update texture of sprite using simulation color data
     sf::Image smokeImage;
-    smokeImage.create(gridWidth, gridHeight, simulation->denseRGBA);
+    smokeImage.create(simWidth, gridHeight, simulation->denseRGBA);
     smokeTexture.loadFromImage(smokeImage);
     smokeSprite.setTexture(smokeTexture);
 
     window->draw(smokeSprite);
+    window->draw(sidebar);
+
+    viscSlider.draw(window);
+    tempSlider.draw(window);
+    timeSlider.draw(window);
+    sizeSlider.draw(window);
+
     window->display();
 }
 
-int App::initVideo(char* filename) {
-    /* AVCodec* pCodec; */
-
-/*    if(avformat_open_input(&pFormatCtx, filename, NULL, 0)!=0) {*/
-/*        fprintf(stderr, "File does not exist!\n");*/
-/*        return -1;*/
-/*      }*/
-
-/*    if(avformat_find_stream_info(pFormatCtx, NULL)<0) {*/
-/*        fprintf(stderr, "Couldn't find stream information!\n");*/
-/*        return -1;*/
-/*    }*/
-
-/*    av_dump_format(pFormatCtx, 0, filename, 0);*/
-
-/*    videoStream = -1;*/
-/*    for(int i = 0; i < (pFormatCtx->nb_streams); i++) {*/
-/*        if(pFormatCtx->streams->codec->codec_type == AVMEDIA_TYPE_VIDEO) {*/
-/*            videoStream = i;*/
-/*            break;*/
-/*        }*/
-/*    }*/
-
-/*    if(videoStream == -1)*/
-/*        return -1;*/
-
-/*    pCodecCtx = pFormatCtx->streams[videoStream]->codec;*/
-
-
-/*    pCodec = avcodec_find_decoder(pCodecCtx->codec_id);*/
-/*    if(pCodec == NULL) {*/
-/*        fprintf(stderr, "Unsupported codec!\n");*/
-/*        return -1;*/
-/*    }*/
-
-/*    if(avcodec_open2(pCodecCtx, pCodec)<0)*/
-/*        return -1;*/
-
-/*    iFrameSize = pCodecCtx->width * pCodecCtx->height * 3;*/
-/*    pFrame = avcodec_frame_alloc();*/
-/*    pFrameRGB = avcodec_alloc_frame();*/
-
-/*    if(pFrameRGB == NULL)*/
-/*        return -1;*/
-
-/*    PFrame is prepared to store our video is in YUV format, ie Hue, Saturation and Brightness. Then, we prepare pFrameRGB to store the video in RGB format, with which work SFML.*/
-
-/*    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);*/
-/*    buffer = (uint8_t*)av_malloc(numBytes*sizeof(uint8_t));*/
-/*    avpicture_get_size((AVPicture*)pFrameRGB, buffer, AV_PIX_FMT_RGB24,*/
-/*                pCodecCtx->width, pCodecCtx->height);*/
-
-/*    With numbytes we get the number of bytes of an image in RGB24 and dimensions of the video and it allocates the buffer with. Then, the buffer is assigned to pFrameRGB.*/
-
-/*    data = new sf::Uint8[pCodecCtx->width * pCodecCtx->height * 4];*/
-
-    return 0;
-}
-
-void App::display() {
-    /* int frameFinished; */
- 
-    /* if (av_read_packet(pFormatCtx, &packet) < 0) { */
-    /*     closeVideo(); */
-    /*     exit(0); */
-    /* } */
- 
-    /* if(packet.stream_index == videoStream) { */
-    /*     avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, */
-    /*                     packet.data, packet.size); */
- 
-    /*     if(frameFinished) { */
-    /*         sws_scale(pFrameRGB, AV_PIX_FMT_RGB24, */
-    /*               (AVPicture*)pFrame, pCodecCtx->pix_fmt, pCodecCtx->width, */
-    /*               pCodecCtx->height); */
-    /*     } */
-
-    /* int j = 0; */
-    /* for(int i = 0; i < iFrameSize; i+=3) { */
-    /*   data[j] = pFrameRGB->data[0][i]; */
-    /*   data[j+1] = pFrameRGB->data[0][i+1]; */
-    /*   data[j+2] = pFrameRGB->data[0][i+2]; */
-    /*   data[j+3] = 255; */
-    /*   j+=4; */
-    /* } */
-
-    /* im_video.create(pCodecCtx->width, pCodecCtx->height, data); */
-
-  /* } */
-
-  //Draw the image on the screen buffer
-  /* window->draw(im_video); */
-}
-
-void App::closeVideo() {
-    //Free the allocated packet av_read_frame
-    /* av_packet_unref(&packet); */
-    /* // Free the RGB image */
-    /* av_free(buffer); */
-    /* av_free(pFrameRGB); */
-    /* // Free the YUV image */
-    /* av_free(pFrame); */
-    /* //Close the codec */
-    /* avcodec_close(pCodecCtx); */
-    /* //Close the video file */
-    /* avformat_close_input(&pFormatCtx); */
-}

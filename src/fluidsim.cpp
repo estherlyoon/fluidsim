@@ -7,7 +7,7 @@
 /* #include <cuda_runtime_api.h> */
 /* #include <cuda.h> */
 
-FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0), kd(2.0), tempDelta(1.0) {
+FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(h), gpu(gpu), xPoint(0), yPoint(0), kd(2.0), timeDelta(1.0), viscosity(1.0), smokeSize(3.0), tempDelta(1.0) {
     vxAdded = new float[w * h]();
     vyAdded = new float[w * h]();
     denseRGBA = new uint8_t[w * h * 4]();
@@ -148,8 +148,8 @@ void FluidSim::updateSimulation() {
 
 void FluidSim::addDensity(int x, int y) {
     /* printf("adding to x = %d, y = %d\n", x, y); */
-    for (int i = -2; i < 3; i++) {
-        for (int j = -2; j < 3; j++) {
+    for (int i = -smokeSize+1; i < smokeSize+1; i++) {
+        for (int j = -smokeSize+1; j < smokeSize+1; j++) {
             int idx = (y + i) * width + x + j;
             if (idx < 0 || idx >= width * height)
                 continue;

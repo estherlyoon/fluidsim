@@ -45,6 +45,10 @@ public:
     int xPoint;
     int yPoint;
 
+    float timeDelta;
+    float viscosity;
+    float smokeSize;
+
     // time tracking
     TimePoint time;
 

@@ -17,7 +17,7 @@ void setBoundary(float* v, int w, int h, int bcond) {
     for (int i = 1; i < w; i++) {
         // horizontal boundaries
         v[UV(i,0,w)] = bcond == CONTAINED_Y ? -v[UV(i,1,w)] : v[UV(i,1,w)];
-        v[UV(i,h-1,w)] = bcond == CONTAINED_Y ? -v[UV(i,h-2,w)] : v[i,h-2,w];
+        v[UV(i,h-1,w)] = bcond == CONTAINED_Y ? -v[UV(i,h-2,w)] : v[UV(i,h-2,w)];
     }
 
     v[UV(0,0,w)] = 0.5f * (v[UV(1,0,w)] + v[UV(0,1,w)]);
@@ -139,32 +139,31 @@ void updateColors(float* densities, uint8_t* res, int w, int h, int color) {
 
 void solveDensity(FluidSim* sim, int c) {
     float diff_rate = 0.8; // TODO
-    addSources(sim->denseAdded[c], sim->densities[c], sim->width, sim->height, 1.0, 1.0f);
+    addSources(sim->denseAdded[c], sim->densities[c], sim->width, sim->height, sim->timeDelta, 1.0f);
 
     swap(&sim->densities[c], &sim->tmpV);
-    diffuse(sim->densities[c], sim->tmpV, diff_rate, sim->width, sim->height, 1.0, 20, CONTINUOUS);
+    diffuse(sim->densities[c], sim->tmpV, diff_rate, sim->width, sim->height, sim->timeDelta, 20, CONTINUOUS);
     swap(&sim->densities[c], &sim->tmpV);
-    advect(sim->vx, sim->vy, sim->densities[c], sim->tmpV, 1.0, sim->width, sim->height, CONTINUOUS);
+    advect(sim->vx, sim->vy, sim->densities[c], sim->tmpV, sim->timeDelta, sim->width, sim->height, CONTINUOUS);
     updateColors(sim->densities[c], sim->denseRGBA, sim->width, sim->height, c);
 }
 
 void solveVelocity(FluidSim* sim) {
-    addSources(sim->vxAdded, sim->vx, sim->width, sim->height, 1.0f, 0.0f);
-    addSources(sim->vyAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
-    addSources(sim->tempAdded, sim->vy, sim->width, sim->height, 1.0f, 0.0f);
+    addSources(sim->vxAdded, sim->vx, sim->width, sim->height, sim->timeDelta, 0.0f);
+    addSources(sim->vyAdded, sim->vy, sim->width, sim->height, sim->timeDelta, 0.0f);
+    addSources(sim->tempAdded, sim->vy, sim->width, sim->height, sim->timeDelta, 0.0f);
 
-    float visc = 0.5; // TODO
     swap(&sim->vx, &sim->tmpV);
-    diffuse(sim->vx, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_X);
+    diffuse(sim->vx, sim->tmpV, sim->viscosity, sim->width, sim->height, sim->timeDelta, 20, CONTAINED_X);
     swap(&sim->vy, &sim->tmpV);
-    diffuse(sim->vy, sim->tmpV, visc, sim->width, sim->height, 1.0, 20, CONTAINED_Y);
+    diffuse(sim->vy, sim->tmpV, sim->viscosity, sim->width, sim->height, sim->timeDelta, 20, CONTAINED_Y);
 
     project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 
     swap(&sim->vx, &sim->tmpV);
-    advect(sim->vx, sim->vy, sim->vx, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_X);
+    advect(sim->vx, sim->vy, sim->vx, sim->tmpV, sim->timeDelta, sim->width, sim->height, CONTAINED_X);
     swap(&sim->vy, &sim->tmpV);
-    advect(sim->vx, sim->vy, sim->vy, sim->tmpV, 1.0, sim->width, sim->height, CONTAINED_Y);
+    advect(sim->vx, sim->vy, sim->vy, sim->tmpV, sim->timeDelta, sim->width, sim->height, CONTAINED_Y);
 
     project(sim->vx, sim->vy, sim->tmpV, sim->tmpU, sim->width, sim->height, 40);
 }
