@@ -12,6 +12,8 @@ FluidSim::FluidSim(unsigned int w, unsigned int h, bool gpu) : width(w), height(
     vyAdded = new float[w * h]();
     denseRGBA = new uint8_t[w * h * 4]();
     tempAdded = new float[w * h]();
+    bounds = new uint8_t[w * h]();
+
     for (int i = 0; i < 3; i++) {
         denseAdded[i] = new float[w * h]();
         currColor[i] = 1.0;
@@ -62,6 +64,7 @@ void FluidSim::reset() {
         cudaMemset(densities[0], 0, dim);
         cudaMemset(densities[1], 0, dim);
         cudaMemset(densities[2], 0, dim);
+        cudaMemset(cudaBounds, 0, sizeof(uint8_t) * width * height);
     } else {
         memset(vx, 0, dim);
         memset(vy, 0, dim);
@@ -76,6 +79,7 @@ void FluidSim::reset() {
     memset(denseAdded[0], 0, dim);
     memset(denseAdded[1], 0, dim);
     memset(denseAdded[2], 0, dim);
+    memset(bounds, 0, sizeof(uint8_t) * width * height);
 
     for (int i = 0; i < width*height; i++) {
         denseRGBA[i*4+3] = 255;
@@ -96,6 +100,34 @@ void FluidSim::allocHost() {
     tmpU = new float[dim];
 }
 
+void FluidSim::allocDevice() {
+    size_t dim = sizeof(float) * width * height;
+    cudaMalloc((void**)&vx, dim);
+    cudaMalloc((void**)&vy, dim);
+    cudaMalloc((void**)&temperatures, dim);
+    cudaMalloc((void**)&tmpV, dim);
+    cudaMalloc((void**)&tmpU, dim);
+    cudaMalloc((void**)&cudaVxAdded, dim);
+    cudaMalloc((void**)&cudaVyAdded, dim);
+    cudaMalloc((void**)&cudaTempAdded, dim);
+    cudaMalloc((void**)&cudaDenseRGBA, sizeof(uint8_t)*width*height*4);
+    cudaMalloc((void**)&cudaBounds, sizeof(uint8_t)*width*height);
+
+    for (int i = 0; i < 3; i++) {
+        cudaMalloc((void**)&cudaDenseAdded[i], dim);
+        cudaMalloc((void**)&densities[i], dim);
+    }
+
+    // init to 0
+    cudaMemset(vx, 0, dim);
+    cudaMemset(vy, 0, dim);
+    cudaMemset(tmpV, 0, dim);
+    cudaMemset(tmpU, 0, dim);
+    cudaMemset(cudaDenseRGBA, 255, sizeof(uint8_t)*width*height);
+    for (int i = 0; i < 3; i++)
+        cudaMemset(densities[i], 0, dim);
+}
+ 
 void FluidSim::setColor(float r, float g, float b) {
     currColor[0] = r;
     currColor[1] = g;
@@ -118,34 +150,7 @@ void FluidSim::changeColor(SmokeColor c) {
             break;
     }
 }
-
-void FluidSim::allocDevice() {
-    size_t dim = sizeof(float) * width * height;
-    cudaMalloc((void**)&vx, dim);
-    cudaMalloc((void**)&vy, dim);
-    cudaMalloc((void**)&temperatures, dim);
-    cudaMalloc((void**)&tmpV, dim);
-    cudaMalloc((void**)&tmpU, dim);
-    cudaMalloc((void**)&cudaVxAdded, dim);
-    cudaMalloc((void**)&cudaVyAdded, dim);
-    cudaMalloc((void**)&cudaTempAdded, dim);
-    cudaMalloc((void**)&cudaDenseRGBA, sizeof(uint8_t)*width*height*4);
-
-    for (int i = 0; i < 3; i++) {
-        cudaMalloc((void**)&cudaDenseAdded[i], dim);
-        cudaMalloc((void**)&densities[i], dim);
-    }
-
-    // init to 0
-    cudaMemset(vx, 0, dim);
-    cudaMemset(vy, 0, dim);
-    cudaMemset(tmpV, 0, dim);
-    cudaMemset(tmpU, 0, dim);
-    cudaMemset(cudaDenseRGBA, 255, sizeof(uint8_t)*width*height);
-    for (int i = 0; i < 3; i++)
-        cudaMemset(densities[i], 0, dim);
-}
-
+    
 void FluidSim::updateSimulation() {
     float timestep = updateTimestep();
 
@@ -177,6 +182,35 @@ void FluidSim::addVelocity(int x, int y, float dx, float dy) {
     int idx = y * width + x;
     vxAdded[idx] += 0.5f * width * dx;
     vyAdded[idx] += 0.5f * height * -1*dy;
+}
+
+void FluidSim::addBoundary(int x, int y) {
+    // first, just fill in the squares needed
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j < 2; j++) {
+            int idx = (y + i) * width + x + j;
+            if (idx < 0 || idx >= width * height)
+                continue;
+
+            setCenter(idx, bounds);
+
+            for (int k = 0; k < 3; k++) {
+                denseRGBA[idx*4+k] = 255*currColor[k];
+            }
+        }
+    }  
+
+    // then, update surrounding squares
+    for (int i = -2; i < 3; i++) {
+        for (int j = -2; j < 3; j++) {
+            int idx = (y + i) * width + x + j;
+            if (idx < 0 || idx >= width * height)
+                continue;
+
+            Boundary b = cellType(idx, bounds);
+            setCellType(b, idx, bounds);
+        }
+    }  
 }
 
 // returns time delta since last time recorded

@@ -61,7 +61,6 @@ void App::event_handler(sf::Event const& event) {
             if (event.key.code == sf::Keyboard::R) {
                 simulation->reset();
             } else if (event.key.code == sf::Keyboard::Space) {
-                printf("run sim\n");
                 runningSimulation = !runningSimulation;
             } else if (event.key.code == sf::Keyboard::Num1) {
                 simulation->changeColor(SmokeColor::WHITE);
@@ -71,6 +70,8 @@ void App::event_handler(sf::Event const& event) {
                 simulation->changeColor(SmokeColor::GREEN);
             } else if (event.key.code == sf::Keyboard::Num4) {
                 simulation->changeColor(SmokeColor::BLUE);
+            } else if (event.key.code == sf::Keyboard::B) {
+                addBounds = true;
             }
             break;
         }
@@ -109,8 +110,14 @@ void App::event_handler(sf::Event const& event) {
                 break;
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                if (currX < simWidth && currY < gridHeight)
-                    simulation->addDensity(currX, currY);
+                if (currX < simWidth && currY < gridHeight) {
+                    if (addBounds) {
+                        simulation->addBoundary(currX, currY);
+                    } else {
+                        simulation->addDensity(currX, currY);
+                    }
+
+                }
                 viscSlider.onMouseMoved(currX, currY);
                 tempSlider.onMouseMoved(currX, currY);
                 sizeSlider.onMouseMoved(currX, currY);

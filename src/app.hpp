@@ -6,8 +6,8 @@
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics.hpp>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
+//#include <libavformat/avformat.h>
+//#include <libavcodec/avcodec.h>
 #include <vector>
 
 class App {
@@ -23,6 +23,7 @@ public:
     int simWidth;
     int sidebarWidth;
     bool runningSimulation;
+    bool addBounds;
 
     // sidebar elements
     sf::RectangleShape sidebar;

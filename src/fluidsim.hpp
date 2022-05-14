@@ -34,6 +34,8 @@ public:
     float* cudaVxAdded;
     float* cudaVyAdded;
     float* cudaTempAdded;
+    uint8_t* bounds;
+    uint8_t* cudaBounds;
 
     float* tmpV;
     float* tmpU;
@@ -65,6 +67,7 @@ public:
     void updateSimulation();
     void reset();
     float updateTimestep();
+    void addBoundary(int x, int y);
     void addDensity(int x, int y);
     void addVelocity(int x, int y, float dx, float dy);
     void allocHost();
