@@ -32,7 +32,3 @@ Press number keys for different smoke/boundary colors:
 - 2: Red
 - 3: Green
 - 4: Blue
-
-Note: the arbitrary edge detection feauture is slightly bugged-- I couldn't figure out how to properly handle density values at boundaries so the smoke that isn't advected away with the velocity field just kind of disappears into the boundary. I also didn't have time to implement arbitrary edge detection in CUDA (did an hour before this was due), so it's only available for the CPU option (for now!).
-
-Sorry if the CUDA version is buggy... the latency using X11 was so bad that it was difficult to test.
