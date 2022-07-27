@@ -1,5 +1,7 @@
 # 2D Smoke Simulation in CUDA
-Two-dimensional smoke simulation written in C++ and CUDA. I used the Navier-Stokes equation and the methods described in Stam's 2003 paper "Real-Time Fluid Dynamics for Games" for my implementation. View images and a demo of the running simulation [here](https://docs.google.com/presentation/d/1eqEfaKGvAk1Qyqlo3zpFsUzaS7SqQFEtBhsAfDDy-dw/edit?usp=sharing).
+Two-dimensional smoke simulation written in C++ and CUDA. I used the Navier-Stokes equation and the methods described in Stam's 2003 paper "Real-Time Fluid Dynamics for Games" for my implementation. 
+
+![Video Demo](https://drive.google.com/file/d/1_fVs2Sfob9b669ooV9sL_UCzuXitozdX/view?resourcekey)
 
 ## Dependencies
 - SFML > 2.0
